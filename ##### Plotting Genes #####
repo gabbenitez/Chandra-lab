@@ -1,0 +1,136 @@
+##### Plotting Genes #####
+
+#load up workspace
+load ("/mnt/tchandra-lab/Gab/data/scRNA-seq/Chandra_Etoposide_3CellLines/analysis/Workspaces/QC_pre_filter.RData")
+
+#set working directory
+setwd("/mnt/tchandra-lab/Gab/data/scRNA-seq/Chandra_Etoposide_3CellLines/analysis/Summer_2020/Treatment/IMR90")
+
+
+
+
+
+##### SASP Genes#####
+
+
+#create vector of SASP-related genes 
+
+SASP <- c("IL1B", "IL1A", "IL6", "CXCL8", "TNFSF1", "MMP1", "CSF2", "IL15", "CXCL1", "CXCL2", "CXCL3", "FGF7", "MMP3")
+
+
+#create heatmap of specific SASP genes
+png(paste("SASP_Seurat_Heatmap.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+DoHeatmap(sce.seurat.filt, features = SASP,  group.by = "SampleIDs", size = 3, draw.lines = TRUE)+ 
+theme(axis.line = element_line(colour = "#ffffff")) + scale_fill_gradient2(low = '#1000ff', mid = "#ffffff", high = '#aa0101', space = "Lab", na.value = "#ffffff", midpoint = 0, guide = "colourbar", aesthetics = "fill")
+dev.off()
+
+
+
+#create violin plots of specific SASP genes
+png(paste("SASP_Violin.plot.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+VlnPlot(object = sce.seurat.filt, SASP,
+        group.by ="SampleIDs"
+)
+dev.off()
+
+
+
+#that's the preliminary data done, now to do all the associated genes
+
+SASP2 <- c("AREG", "EREG", "FGF7", "IL1A", "MMP10", "MMP3", "MMP7", "IGFBP5", "CXCL2", "IL1B", "IL8", "IGFBP3", "SERPINB2", "TNFRSF1B", "PLAUR", "EGFR", "SERPINE1", "FN1", "CXCL3", "TIMP1", "CCL20", "TNFRSF1A", "CXCL1", "IL6ST", "MIF", "FAS", "ICAM1", "ICAM3", "CTSB", "TNFRSF11B", "MMP1", "TIMP2", "MMP14", "CCL3", "MMP2", "CCL13", "CCL8", "IFNG", "CSF2", "CCL11", "CCL25", "CCL1", "CCL26", "CXCL13", "CCL16", "CSF3", "CCL7", "HGF", "CXCL11", "IL6", "MMP13", "IL13", "NGF", "IGFBP2", "MMP9", "MIP", "IL15", "CCL2", "IGFBP4", "PIGF", "FGF2", "IGFBP7", "ANG", "TNFRSF10C", "IGFBP6", "IL7", "CXCL12", "EGF")
+
+
+
+#create heatmap of all SASP genes
+png(paste("SASP_Seurat_Heatmap_All.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+DoHeatmap(sce.seurat.filt, features = SASP2, group.by = "SampleIDs", size = 3, draw.lines = TRUE)+
+theme(axis.line = element_line(colour = "#ffffff")) + scale_fill_gradient2(low = '#1000ff', mid = "#ffffff", high = '#aa0101', space = "Lab", na.value = "#ffffff", midpoint = 0, guide = "colourbar", aesthetics = "fill")
+dev.off()
+
+
+#create violin plots of all SASP genes
+png(paste("SASP_Violin_plot_All.png", sep = ""), width = 12, height = 30, units = 'in', res = 400)
+VlnPlot(object = sce.seurat.filt, SASP2,
+        group.by ="SampleIDs"
+)
+dev.off()
+
+
+
+
+
+
+
+##### IFN Genes #####
+
+
+#create vector of SASP-related genes 
+
+ISG <- c("IFI27", "IFI44L", "IFIT1", "ISG15", "RSAD2", "SIGLEC1", "CMPK2", "DDX60", "EPSTI1", "FBXO39", "HERC5", "HES4", "IFI44", "IFI6", "IFIH1", "IRF7", "LAMP3", "LY6E", "MX1", "CMPK2", "OAS1", "OASL", "OTOF", "SPATS2L")
+
+
+
+#create heatmap of specific ISG genes
+png(paste("ISG_Seurat_Heatmap.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+DoHeatmap(sce.seurat.filt, features = ISG, group.by = "SampleIDs", size = 3, draw.lines = TRUE)+
+theme(axis.line = element_line(colour = "#ffffff")) + scale_fill_gradient2(low = '#1000ff', mid = "#ffffff", high = '#aa0101', space = "Lab", na.value = "#ffffff", midpoint = 0, guide = "colourbar", aesthetics = "fill")
+dev.off()
+
+
+#create violin plots ISG genes
+png(paste("ISG_Violin.plot.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+VlnPlot(object = sce.seurat.filt, ISG,
+        group.by ="SampleIDs"
+)
+dev.off()
+
+
+#preliminary data all done, now to do all ISG genes
+
+
+ISG2 <- c("IFI27", "IFI44L", "IFIT1", "ISG15", "RSAD2", "SIGLEC1", "DDX58", "DDX60", "EPSTI1", "FBXO39", "HERC5", "HES4", "IFI44", "IFI6", "IFIH1", "IRF7", "LAMP3", "LY6E", "MX1", "CMPK2", "OAS1", "OASL", "OTOF", "SPATS2L", "LGALS3BP", "USP18", "SAMD9L", "RTP4", "PARP14", "PARP12", "HERC6", "IRF9", "XAF1", "PLSCR1", "DHX58", "IFI35", "PNPT1", "LAP3", "STAT1", "TRIM5", "CMTR1", "STAT2", "APOL6", "TDRD7", "SAMD9", "GCH1", "PARP9", "LYSMD2", "HELZ2", "SPPL2A", "FAM46A", "CD38", "CD274", "TNFAIP6", "BATF2", "UBE2L6", "TOR1B", "CCL2", "NMI", "GBP4",
+          "WARS", "TRIM14", "TNFSF10", "SLAMF7", "PML", "PFKP", "NCOA7", "MTHFD2", "MOV10", "JAK2", "ISG20", "IRF4", "IL7", "IL15RA", "IL15", "GMPR", "GBP6", "CNP", "CDKN1A", "BPGM", "CASP7", "MT2A", "ZBP1", "BST2","SP110", "PSME2")
+
+
+#create heatmap of all ISG genes
+png(paste("ISG_Seurat_Heatmap_All.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+DoHeatmap(sce.seurat.filt, features = ISG2, group.by = "SampleIDs", size = 3, draw.lines = TRUE)+
+theme(axis.line = element_line(colour = "#ffffff")) + scale_fill_gradient2(low = '#1000ff', mid = "#ffffff", high = '#aa0101', space = "Lab", na.value = "#ffffff", midpoint = 0, guide = "colourbar", aesthetics = "fill")
+dev.off()
+
+
+#create violin plots of all ISG genes
+png(paste("ISG_Violin_plot_All.png", sep = ""), width = 12, height = 45, units = 'in', res = 400)
+VlnPlot(object = sce.seurat.filt, ISG2,
+        group.by ="SampleIDs"
+)
+dev.off()
+
+
+
+
+
+
+##### cGAS Genes #####
+
+project_filename_prefix <- "cGAS_genes"
+
+#create vector of cGAS-related genes 
+
+cGas <- c("MB21D1", "TMEM173", "NFKB1", "IFNB1", "IFNB3", "IFNA1", "IFNA2", "DNASE2", "TREX1", "LMNB1", "MAPK14")
+
+
+
+#create heatmap of specific cGAS genes
+png(paste("cGAS_Seurat_Heatmap.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+DoHeatmap(sce.seurat.filt, features = cGas, group.by = "SampleIDs", size = 3, draw.lines = TRUE)+
+theme(axis.line = element_line(colour = "#ffffff")) + scale_fill_gradient2(low = '#1000ff', mid = "#ffffff", high = '#aa0101', space = "Lab", na.value = "#ffffff", midpoint = 0, guide = "colourbar", aesthetics = "fill")
+dev.off()
+
+
+#create violin plots cGas genes
+png(paste("cGasViolin.plot.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+VlnPlot(object = sce.seurat.filt, cGas,
+        group.by ="SampleIDs"
+)
+dev.off()

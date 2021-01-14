@@ -1,0 +1,699 @@
+###################################
+
+######### SASP DIM. RED. ##########
+
+###################################
+
+load("/mnt/tchandra-lab/Gab/data/scRNA-seq/Chandra_Etoposide_3CellLines/analysis/Workspaces/QC_pre_filter.RData")
+
+setwd("/mnt/tchandra-lab/Gab/data/scRNA-seq/Chandra_Etoposide_3CellLines/analysis/Final_Results/SASP")
+
+##Filter and create seurat object of etoposide, all genotype
+
+
+SCE.sce.keep$genotype <- ifelse(SCE.sce.keep$genotype == 0, "BJ", ifelse(SCE.sce.keep$genotype == 1, "IMR90", ifelse(SCE.sce.keep$genotype == 2, "WI38", "Unknown")))
+SCE.sce.keep@metadata$geno_treatment <- paste(SCE.sce.keep@metadata$genotype, SCE.sce.keep@metadata$genotype, sep="_")
+
+
+
+#########################################
+
+########### FILTER CRITERIA #############
+
+#########################################
+
+
+filter_by_total_counts <- SCE.sce.keep$total_counts >= 1700
+filter_by_top_total_counts <- SCE.sce.keep$log10_total_counts <= 3.7
+filter_by_expr_features <- SCE.sce.keep$total_features_by_counts >= 750
+filter_by_MT <- SCE.sce.keep$pct_counts_MT < 17
+
+# for souporcell, genotype and status
+
+filter_by_singlet <- SCE.sce.keep$status == "singlet,"
+
+
+######################
+#### FOR GENOTYPE ####
+######################
+
+
+filter_by_genotype <- SCE.sce.keep$genotype == "IMR90"
+
+filter_by_genotype <- SCE.sce.keep$genotype %in% c("BJ", "IMR90" , "WI38")
+
+
+
+########################################
+############ for treatment #############
+########################################
+
+filter_by_treatment <- SCE.sce.keep$SampleIDs %in% c("Control", "Etoposide", "Quiescent" )
+
+filter_by_treatment <- SCE.sce.keep$SampleIDs == "Etoposide"
+
+
+#######################################
+#######################################
+#######################################
+
+
+##Setting up keep features
+SCE.sce.keep$use <- (
+  ### RM LOW FEATURES ###
+  filter_by_expr_features &
+    ### RM LOW COUNTS ###
+    filter_by_total_counts &
+    ## RM TOP TOTAL COUNTS##
+    filter_by_top_total_counts &
+    ### RM MT ###
+    filter_by_MT &
+    ### RM unassigned and doublets###
+    filter_by_singlet &
+    ### RM unwanted genotypes###
+    filter_by_genotype &
+    ### RM by treatment ###
+    filter_by_treatment
+)
+
+
+######### FILTER UNWANTED CELLS ###########
+
+
+
+SCE.sce.keep.filt <- SCE.sce.keep
+
+drop <- (!SCE.sce.keep$use) ##the ! here swaps trues with falses
+
+SCE.sce.keep.filt <- SCE.sce.keep.filt[,!drop]
+
+
+
+endog_genes <- !rowData(SCE.sce.keep.filt)$is_feature_control
+
+dim(SCE.sce.keep)
+dim(SCE.sce.keep.filt)
+
+
+
+########
+
+runPCA(SCE.sce.keep[endog_genes, ])
+
+runPCA(SCE.sce.keep.filt[endog_genes, ])
+
+
+##################
+##################
+##    SEURAT    ##
+##################
+##################
+
+sce.seurat.filt <- CreateSeuratObject(counts = counts(SCE.sce.keep.filt), 
+                                      meta.data = as.data.frame(colData(SCE.sce.keep.filt)),
+                                     project = "SCE")
+
+sce.seurat.filt[["percent.mt"]] <- PercentageFeatureSet(sce.seurat.filt, pattern = "^MT-")
+
+
+sce.seurat.filt <- NormalizeData(sce.seurat.filt, normalization.method = "LogNormalize", scale.factor = 10000)
+
+
+
+sce.seurat.filt <- FindVariableFeatures(sce.seurat.filt, selection.method = "vst", nfeatures = 500)
+
+top20 <- head(VariableFeatures(sce.seurat.filt), 20)
+
+
+# assign souporcell identities now in genotype column for seurat to cluster 
+
+Idents(sce.seurat.filt = sce.seurat.filt) <- sce.seurat.filt@meta.data$genotype
+
+
+all.genes <- rownames(sce.seurat.filt)
+
+sce.seurat.filt <- ScaleData(sce.seurat.filt, features = all.genes)
+
+
+sce.seurat.filt <- RunPCA(sce.seurat.filt, features = VariableFeatures(object = sce.seurat.filt))
+
+
+
+
+NUM_PRINCOMP_TO_USE = 11
+
+
+
+sce.seurat.filt <- FindNeighbors(object = sce.seurat.filt,
+                                 
+                                 reduction = "pca",
+                                 
+                                 dims = 1:NUM_PRINCOMP_TO_USE,
+                                 
+                                 compute.SNN = TRUE,
+                                 
+                                 verbose = TRUE,
+                                 
+                                 k.param = 20)
+
+
+
+
+
+sce.seurat.filt <- FindClusters(object = sce.seurat.filt,
+                                
+                                dims.use = 1:NUM_PRINCOMP_TO_USE,
+                                
+                                resolution = 1.0,
+                                
+                                print.output = 0,
+                                
+                                save.SNN = TRUE)
+
+
+
+
+
+sce.seurat.filt <- RunTSNE(object = sce.seurat.filt,
+                           
+                           dims.use = 1:NUM_PRINCOMP_TO_USE,
+                           
+                           do.fast = TRUE,
+                           
+                           seed.use = 1,
+                           
+                           tsne.method = "Rtsne",
+                           
+                           dim.embed = 3)
+
+
+
+sce.seurat.filt <- RunUMAP(sce.seurat.filt,
+                           
+                           dims = 1:NUM_PRINCOMP_TO_USE,
+                           
+                           #n.components = 3L,
+                           
+                           reduction = 'pca')
+
+
+
+####### FINDING MARKERS #######
+
+Idents(sce.seurat.filt = sce.seurat.filt) <- sce.seurat.filt@meta.data$genotype
+
+
+##this one down below
+
+
+markers0 <- FindMarkers(sce.seurat.filt, ident.1 = "BJ", ident.2 = "IMR90", ident.3 = "WI38")
+
+
+
+#########################################
+
+########## FINDING ALL MARKERS###########
+
+#########################################
+
+
+
+markers <- FindAllMarkers(
+  
+  object = sce.seurat.filt,
+  
+  only.pos = TRUE,
+  
+  min.pct = 0.25,
+  
+  thresh.use = 0.25
+  
+)
+
+
+
+############################
+
+######## SASP GENES ########
+
+############################
+
+
+markers.sasp = ["AREG", "EREG", "FGF7", "MMP3", "IGFBP5", "IL1B", "SERPINEB2", "PLAUR", "SERPINE1", "FN1", "TIMP1", "CSCL1", "IL6ST", "MIF",
+                "CTSB", "TNFRSF11B", "MMP1", "TIMP2", "MMP2", "HGF", "CCL2", "IGFBP4", "IGFBP7", "IGFBP6"]
+
+
+
+
+
+##########################
+
+top10 <- markers %>% group_by("genotype") %>% top_n(10, avg_logFC)
+
+
+
+
+
+################################################################
+
+
+################################################################
+
+
+################################################################
+
+project_filename_prefix <- "SASP_All"
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.TSNE.1.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+FeaturePlot(
+    sce.seurat.filt,
+    features = c ("AREG"  , "EREG"),
+    overlay = TRUE
+  )
+dev.off()
+
+
+
+### Now, fetch load up SASP genes file
+
+#setwd("/mnt/tchandra-lab/Gab/data/scRNA-seq/Chandra_Etoposide_3CellLines/analysis/Final_Results/SASP_dim_red")
+
+#sasp.genes <- read.csv("all_SASP_genes.csv", header = F, row.names = 1)
+#dim(sasp.genes)
+
+## Reduce list of genes to those referenced in the dataset
+
+#sasp.genes.seurat <- sasp.genes[ rownames(sasp.genes) %in% rownames(sce.seurat.filt) , ]
+#dim(sasp.genes.seurat)
+
+
+## the genes in the seurat object are the ones here then
+
+#sasp.genes.seurat
+
+
+### ANd basically, generate a csv of the SASP genes, and take the column of genes and paste them here 
+
+# "AREG"  ,    "EREG"   ,   "FGF7"    ,  "IL1A"    ,  "MMP10"    , "MMP3"   ,   "MMP7"     , "IGFBP5" ,   "CXCL2"    , "IL1B"     , "IGFBP3"   ,
+# "SERPINB2" , "TNFRSF1B" , "PLAUR"   ,  "EGFR"    ,  "SERPINE1" , "FN1"    ,   "CXCL3"    , "TIMP1"  ,   "CCL20"    , "TNFRSF1A" , "CXCL1"    ,
+# "IL6ST"   ,  "MIF"      , "FAS"     ,  "ICAM1"   ,  "ICAM3"    , "CTSB"   ,   "TNFRSF11B" , "MMP1"  ,    "TIMP2"   ,  "MMP14"   ,  "CCL3"     ,
+# "MMP2"    ,  "CCL8"     , "CCL25"   ,  "CCL26"   ,  "CSF3"     , "CCL7"   ,   "HGF"     ,  "CXCL11" ,   "IL6"      , "NGF"      , "IGFBP2"   ,
+# "MIP"     ,  "IL15"     , "CCL2"    ,  "IGFBP4"  ,  "PIGF"     , "FGF2"   ,   "IGFBP7"  ,  "ANG"    ,   "TNFRSF10C" , "IGFBP6"  ,  "IL7"      ,
+# "CXCL12"  ,  "EGF"
+  
+
+## Generate UMAP and TSNE dim.red for visualisation before feature
+
+Plot1 <- DimPlot(sce.seurat.filt, reduction = "umap")
+png("Etop_Seur_uMap_SASP_300.png", width = 10, height = 5, units = 'in', res = 300)
+Plot1
+dev.off()
+
+
+
+Plot1 <- DimPlot(sce.seurat.filt, reduction = "tsne")
+png("Seurat_TSNE_SASP_celltype_300.png", width = 10, height = 5, units = 'in', res = 300)
+Plot1
+dev.off()
+
+
+
+
+
+project_filename_prefix <- "SASP_All"
+
+
+
+png(paste(project_filename_prefix, "Seurat_ProvisionalMarkers.1.TransElements.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+VlnPlot(object = sce.seurat.filt, c( 
+  "AREG"  ,    "EREG"   ,   "FGF7"    ,  "IL1A"    ,  "MMP10"    , "MMP3"   ,   "MMP7"     , "IGFBP5" ,   "CXCL2"
+))
+dev.off()
+
+
+
+
+png(paste(project_filename_prefix, "Seurat_ProvisionalMarkers.2.TransElements.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+VlnPlot(object = sce.seurat.filt, c( 
+  "IL1B"     , "IGFBP3"   ,"SERPINB2" , "TNFRSF1B" , "PLAUR"   ,  "EGFR"    ,  "SERPINE1" , "FN1"    ,   "CXCL3"
+))
+dev.off()
+
+
+
+
+png(paste(project_filename_prefix, "Seurat_ProvisionalMarkers.3.TransElements.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+VlnPlot(object = sce.seurat.filt, c( 
+ "TIMP1"  ,   "CCL20"    , "TNFRSF1A" , "CXCL1"  ,  "IL6ST"   ,  "MIF"      , "FAS"     ,  "ICAM1"   ,  "ICAM3" 
+))
+dev.off()
+
+
+
+
+png(paste(project_filename_prefix, "Seurat_ProvisionalMarkers.4.TransElements.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+VlnPlot(object = sce.seurat.filt, c( 
+  "CTSB"   ,   "TNFRSF11B" , "MMP1"  ,    "TIMP2"   ,  "MMP14"   ,  "CCL3"     ,"MMP2"    ,  "CCL8"     , "CCL25" 
+))
+dev.off()
+
+
+
+
+png(paste(project_filename_prefix, "Seurat_ProvisionalMarkers.5.TransElements.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+VlnPlot(object = sce.seurat.filt, c( 
+  "CCL26"   ,  "CSF3"     , "CCL7"   ,   "HGF"     ,  "CXCL11" ,   "IL6"      , "NGF"      , "IGFBP2"   , "MIP"   
+))
+dev.off()
+
+
+
+
+png(paste(project_filename_prefix, "Seurat_ProvisionalMarkers.6.TransElements.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+VlnPlot(object = sce.seurat.filt, c( 
+  "IL15"     , "CCL2"    ,  "IGFBP4"  ,  "PIGF"     , "FGF2"   ,   "IGFBP7"  ,  "ANG"    ,   "TNFRSF10C" , "IGFBP6"  
+))
+dev.off()
+
+
+
+
+png(paste(project_filename_prefix, "Seurat_ProvisionalMarkers.7.TransElements.png", sep = ""), width = 12, height = 12, units = 'in', res = 400)
+VlnPlot(object = sce.seurat.filt, c( 
+"IL7"      , "CXCL12"  ,  "EGF"
+))
+dev.off()
+
+
+
+
+
+
+
+##############################
+
+### TSNE SASP SEURAT STUFF ###
+
+##############################
+
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.TSNE.1.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c ("AREG"  ,    "EREG"   ,   "FGF7"    ,  "IL1A"    ,  "MMP10"    , "MMP3"   ,   "MMP7"     , "IGFBP5" , "CXCL2"),
+  
+  reduction = "tsne",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3,
+  
+  blend = TRUE
+  
+)
+
+dev.off()
+
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.TSNE.2.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c( "IL1B"     , "IGFBP3"   ,"SERPINB2" , "TNFRSF1B" , "PLAUR"   ,  "EGFR"    ,  "SERPINE1" , "FN1"    ,   "CXCL3" ),
+  
+  reduction = "tsne",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3
+  
+)
+
+dev.off()
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.TSNE.3.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c( "TIMP1"  ,   "CCL20"    , "TNFRSF1A" , "CXCL1" ,   "IL6ST"   ,  "MIF"      , "FAS"     ,  "ICAM1"   ,  "ICAM3") ,
+  
+  reduction = "tsne",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3
+  
+)
+
+dev.off()
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.TSNE.4.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c("CTSB"   ,   "TNFRSF11B" , "MMP1"  ,    "TIMP2"   ,  "MMP14"   ,  "CCL3"     ,"MMP2"    ,  "CCL8"     , "CCL25")   , 
+  
+  reduction = "tsne",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3
+  
+)
+
+dev.off()
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.TSNE.5.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c("CCL26"   ,  "CSF3"     , "CCL7"   ,   "HGF"     ,  "CXCL11" ,   "IL6"      , "NGF"      , "IGFBP2"   , "MIP" )    ,
+  
+  reduction = "tsne",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3
+  
+)
+
+dev.off()
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.TSNE.6.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c( "IL15"     , "CCL2"    ,  "IGFBP4"  ,  "PIGF"     , "FGF2"   ,   "IGFBP7"  ,  "ANG"    ,   "TNFRSF10C" , "IGFBP6")  ,  
+  
+  reduction = "tsne",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3
+  
+)
+
+dev.off()
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.TSNE.7.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c("IL7"      , "CXCL12"  ,  "EGF"),
+  
+  reduction = "tsne",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3
+  
+)
+
+dev.off()
+
+
+####UMAP NOW
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.UMAP.1.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c ("AREG"  ,    "EREG"   ,   "FGF7"    ,  "IL1A"    ,  "MMP10"    , "MMP3"   ,   "MMP7"     , "IGFBP5" , "CXCL2"),
+  
+  reduction = "umap",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3
+  
+)
+
+dev.off()
+
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.UMAP.2.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c( "IL1B"     , "IGFBP3"   ,"SERPINB2" , "TNFRSF1B" , "PLAUR"   ,  "EGFR"    ,  "SERPINE1" , "FN1"    ,   "CXCL3" ),
+  
+  reduction = "umap",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3
+  
+)
+
+dev.off()
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.UMAP.3.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c( "TIMP1"  ,   "CCL20"    , "TNFRSF1A" , "CXCL1" ,   "IL6ST"   ,  "MIF"      , "FAS"     ,  "ICAM1"   ,  "ICAM3") ,
+  
+  reduction = "umap",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3
+  
+)
+
+dev.off()
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.UMAP.4.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c("CTSB"   ,   "TNFRSF11B" , "MMP1"  ,    "TIMP2"   ,  "MMP14"   ,  "CCL3"     ,"MMP2"    ,  "CCL8"     , "CCL25")   , 
+  
+  reduction = "umap",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3
+  
+)
+
+dev.off()
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.UMAP.5.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c("CCL26"   ,  "CSF3"     , "CCL7"   ,   "HGF"     ,  "CXCL11" ,   "IL6"      , "NGF"      , "IGFBP2"   , "MIP" )    ,
+  
+  reduction = "umap",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3
+  
+)
+
+dev.off()
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.UMAP.6.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c( "IL15"     , "CCL2"    ,  "IGFBP4"  ,  "PIGF"     , "FGF2"   ,   "IGFBP7"  ,  "ANG"    ,   "TNFRSF10C" , "IGFBP6")  ,  
+  
+  reduction = "umap",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3
+  
+)
+
+dev.off()
+
+
+png(paste(project_filename_prefix, "Seurat_FeaturePlot.UMAP.7.png", sep = ""), width = 12, height = 6, units = 'in', res = 400)
+
+FeaturePlot(
+  
+  sce.seurat.filt,
+  
+  features = c("IL7", "CXCL12"  ,  "EGF"),
+  
+  reduction = "umap",
+  
+  dims = c(1,2),
+  
+  cols = c("lightgrey", "blue"),
+  
+  ncol = 3
+  
+)
+
+dev.off()
