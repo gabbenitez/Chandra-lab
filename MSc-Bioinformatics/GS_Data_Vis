@@ -1,0 +1,58 @@
+##################################
+
+####### Generation Scotland ######
+
+##################################
+
+library("ggplot2")
+library("stringr")
+
+#open file
+GS_raw <- readRDS("C:/Users/gabri/Desktop/Dissertation/Data/GS_DNAmTL.rds")
+GS_raw
+
+GS_anno <- readRDS("C:/Users/gabri/Desktop/Dissertation/Data/GS_10k_Targets_28052021.rds")
+
+colnames(GS_anno)[1]<- "DNAm_ID"
+
+#match DNAmID of GS to anno
+#only keeping matched filters against tissue mix-ups
+GS <- merge(GS_raw, GS_anno, by.x = 'DNAm_ID')
+dim(GS)
+
+
+#plots!
+
+data_prefix <- "GC_"
+
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/GS")
+
+
+##### general linear age
+png(paste(data_prefix, "DNAmTL_by_Age.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(GS, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18) +
+  geom_smooth(method=lm, se=TRUE) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Colored.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(GS, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18, aes(colour=sex)) +
+  geom_smooth(method=lm, se=TRUE) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Ln.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(GS, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18) +
+  geom_smooth(method=lm, se=TRUE, aes(color=sex)) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+
+#variation within age groups
+
+
+#statistical analysis 
+#subgroups within population
