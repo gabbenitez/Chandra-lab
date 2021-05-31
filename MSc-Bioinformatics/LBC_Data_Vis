@@ -1,0 +1,167 @@
+###################################
+
+####### Lothian Birth Cohort ######
+
+###################################
+
+install.packages("tidyverse")
+
+#open file
+LBC_raw <- readRDS("C:/Users/gabri/Desktop/Dissertation/Data/LBC_DNAmTL.rds")
+LBC_raw
+
+#open annotation file
+LBC_anno <- readRDS("C:/Users/gabri/Desktop/Dissertation/Data/LBC_targets_3489_bloodonly.rds")
+LBC_anno
+
+#modify names to match
+colnames(LBC_anno)[2] <- "DNAm_ID"
+
+#match DNAmID of LBC_raw to Basename of LBC_anno, only keeping matched filters against tissue mix-ups
+LBC <- merge(LBC_raw, LBC_anno, by.x = 'DNAm_ID')
+LBC
+
+#extract LBC cohorts (1936, 1921)
+LBC_36 <- LBC[str_detect(LBC$cohort, "LBC36"),]
+LBC_21 <- LBC[str_detect(LBC$cohort, "LBC21"),]
+
+
+#plot 21
+data_prefix <- "LBC_21_"
+
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC_21")
+
+##### general linear age
+png(paste(data_prefix, "DNAmTL_by_Age.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(LBC_21, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18) +
+  geom_smooth(method=lm, se=TRUE) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Colored.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(LBC_21, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18, aes(colour=sex)) +
+  geom_smooth(method=lm, se=TRUE) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Ln.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(LBC_21, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18) +
+  geom_smooth(method=lm, se=TRUE, aes(color=sex)) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+#how it changes with age
+#variation within age groups
+
+
+###################
+
+#plot 36
+
+data_prefix <- "LBC_36_"
+
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC_36")
+
+##### general linear age
+png(paste(data_prefix, "DNAmTL_by_Age.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(LBC_36, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18) +
+  geom_smooth(method=lm, se=TRUE) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Colored.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(LBC_36, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18, aes(colour=sex)) +
+  geom_smooth(method=lm, se=TRUE) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Ln.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(LBC_36, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18) +
+  geom_smooth(method=lm, se=TRUE, aes(color=sex)) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+
+######################
+#### both cohorts
+
+data_prefix <- "LBC_"
+
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC")
+
+png(paste(data_prefix, "DNAmTL_by_Age.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(LBC, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18) +
+  geom_smooth(method=lm, se=TRUE) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Colored.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(LBC, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18, aes(colour=cohort)) +
+  geom_smooth(method=lm, se=TRUE) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Ln.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(LBC, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18) +
+  geom_smooth(method=lm, se=TRUE, aes(color=cohort)) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+
+#####
+# 1921 vs 1936 - first and last cohort
+# does "start year" have an influence?
+
+LBC_36_W4 <- LBC_36 %>% filter(WAVE==4) 
+LBC_21_W1 <- LBC_21 %>% filter(WAVE==1)
+
+LBC_merge <- rbind(LBC_36_W4, LBC_21_W1)
+LBC_merge
+
+dim(LBC_36_W4)
+dim(LBC_21_W1)
+dim(LBC_merge)
+
+data_prefix <- "LBC_Merge_36.4_21.1_"
+
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC_merge")
+
+png(paste(data_prefix, "DNAmTL_by_Age.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(LBC_merge, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18) +
+  geom_smooth(method=lm, se=TRUE) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Colored.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(LBC_merge, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18, aes(colour=cohort)) +
+  geom_smooth(method=lm, se=TRUE) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Ln.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+ggplot(LBC_merge, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=18) +
+  geom_smooth(method=lm, se=TRUE, aes(color=cohort)) +
+  theme (text=element_text(size=16, family="Arial"))
+dev.off()
+
+
+##### Longitudinal Tracing
+ggplot(LBC_21, aes(x=age, y=DNAmTL, group=Sample_Name)) +
+  geom_line()+
+  geom_point()
+
+ggplot(LBC_36, aes(x=age, y=DNAmTL, group=Sample_Name)) +
+  geom_line()+
+  geom_point()
