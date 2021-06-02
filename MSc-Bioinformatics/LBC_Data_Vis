@@ -4,7 +4,17 @@
 
 ###################################
 
-install.packages("tidyverse")
+library("tidyr")
+library("ggplot2")
+library("stringr")
+library("dplyr")
+library("extrafont")
+library ("ggridges")
+library("RColorBrewer")
+library ("wesanderson")
+
+
+#####  Data Get and Manipulation #####
 
 #open file
 LBC_raw <- readRDS("C:/Users/gabri/Desktop/Dissertation/Data/LBC_DNAmTL.rds")
@@ -21,147 +31,434 @@ colnames(LBC_anno)[2] <- "DNAm_ID"
 LBC <- merge(LBC_raw, LBC_anno, by.x = 'DNAm_ID')
 LBC
 
+#remove all NA rows
+LBC <- LBC %>% drop_na(age)
+dim(LBC)
+
 #extract LBC cohorts (1936, 1921)
 LBC_36 <- LBC[str_detect(LBC$cohort, "LBC36"),]
 LBC_21 <- LBC[str_detect(LBC$cohort, "LBC21"),]
 
 
-#plot 21
-data_prefix <- "LBC_21_"
+#add bins for "age groups"
+#LBC 36
+
+LBC_36$Age_Bin[LBC_36$age < 69.99] <- "<70"
+LBC_36$Age_Bin[LBC_36$age > 69.99 & LBC_36$age < 72.99] <- "70<73"
+LBC_36$Age_Bin[LBC_36$age > 72.99 & LBC_36$age < 75.99] <- "73<76"
+LBC_36$Age_Bin[LBC_36$age > 75.99] <- "76<"
+
+
+#LBC 21
+
+
+LBC_21$Age_Bin[LBC_21$age < 84.99] <- "<85"
+LBC_21$Age_Bin[LBC_21$age > 84.99 & LBC_21$age < 86.99] <- "85<87"
+LBC_21$Age_Bin[LBC_21$age > 86.99] <- "87<"
+
+
+LBC_all <- rbind(LBC_21, LBC_36)
+
+#merge last age group of 36 and first of 21
+
+LBC_all$Age_Bin[LBC_all$Age_Bin == "76<"] <-"76<85"
+LBC_all$Age_Bin[LBC_all$Age_Bin == "<85"] <-"76<85"
+
+dim(LBC_21)
+dim(LBC_36)
+dim(LBC_all)
+
+##### Plotting Set Up #####
+
+pal <- wes_palette("Darjeeling1", 6, type = "continuous")
+pal
+
+
+
+##### Plotting!  #####
+
+
+#####  LBC_21  #####
 
 setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC_21")
 
-##### general linear age
-png(paste(data_prefix, "DNAmTL_by_Age.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+data_prefix <- "LBC_21_"
+
+##DNAmTL vs Age, with Average Trajectories
+
+png(paste(data_prefix, "DNAmTL_by_Age.png", sep = ""), width = 8, height = 8, units = 'in', res = 300)
 ggplot(LBC_21, aes(x=age, y=DNAmTL)) +
-  geom_point(shape=18) +
+  geom_point(shape=16, alpha = 0.4) +
   geom_smooth(method=lm, se=TRUE) +
-  theme (text=element_text(size=16, family="Arial"))
+  ggtitle ("DNAmTL by Age") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  xlim(76, 92) +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort 1921") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
 dev.off()
 
 png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Colored.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
 ggplot(LBC_21, aes(x=age, y=DNAmTL)) +
-  geom_point(shape=18, aes(colour=sex)) +
+  geom_point(shape=16, aes(colour=sex), alpha = 0.6) +
   geom_smooth(method=lm, se=TRUE) +
-  theme (text=element_text(size=16, family="Arial"))
+  scale_color_brewer(palette="Dark2") +
+  ggtitle ("DNAmTL by Age, With Sex") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  xlim(76, 92) +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort 1921") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
 dev.off()
+
 
 png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Ln.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
 ggplot(LBC_21, aes(x=age, y=DNAmTL)) +
-  geom_point(shape=18) +
+  geom_point(shape=16, alpha = 0.4) +
   geom_smooth(method=lm, se=TRUE, aes(color=sex)) +
-  theme (text=element_text(size=16, family="Arial"))
+  scale_color_brewer(palette = "Dark2") +
+  ggtitle ("DNAmTL by Age, With Average Trajectories by Sex") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  xlim(76, 92) +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort 1921") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
 dev.off()
 
-#how it changes with age
-#variation within age groups
+
+## Distributions of lengths against age bins
+
+png(paste(data_prefix, "ViolinPlot_and_BoxPlot_Telomere_dist_by_age_bins.png", sep = ""), width = 16, height = 10, units = 'in', res = 400)
+ggplot(LBC_21, aes(x=Age_Bin, y = DNAmTL, fill=Age_Bin)) +
+  geom_violin(width = 1) +
+  geom_boxplot(width = 0.5, color = "black", alpha = 0.8) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Violin and Box Plot of DNAmTL Distributions per Age Bin") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort 1921") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
 
 
-###################
+png(paste(data_prefix, "BoxPlot_and_Jitter_Telomere_dist_by_age_bins.png", sep = ""), width = 16, height = 10, units = 'in', res = 400)
+ggplot(LBC_21, aes(x=Age_Bin, y = DNAmTL, fill=Age_Bin)) +
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.8, size = 0.4)+
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Box and Jitter Plot of DNAmTL Distributions per Age Bin") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort 1921") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
 
-#plot 36
+png(paste(data_prefix, "Ridgeplot_Telomere_dist_by_age_bins.png", sep = ""), width = 10, height = 12.5, units = 'in', res = 500)
+ggplot(LBC_21, aes(x = DNAmTL, y = Age_Bin, fill = Age_Bin)) +
+  geom_density_ridges(jittered_points = TRUE, 
+                      position = position_points_jitter(width = 0.01, height = 0), 
+                      point_shape = "|", point_size=5, point_alpha = 1, alpha = 1) +
+  theme_ridges () +
+  scale_fill_manual(values = pal)+
+  stat_density_ridges(quantile_lines = TRUE, quantiles = 4) +
+  theme(legend.position = "none") + 
+  ggtitle ("Ridgeplot of DNAmTL Distributions per Age Bin") +
+  xlab ("DNAmTL") +
+  ylab ("Age (Years)") +
+  xlim (5, 8) +
+  scale_y_discrete(limits=rev) +
+  labs (caption = "Data: Lothian Birth Cohort 1921") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title.y = element_text(hjust = 0.5),
+    axis.title.x = element_text(hjust = 0.5),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
 
-data_prefix <- "LBC_36_"
+
+
+
+#################################################################
+
+##### LBC 36 #####
 
 setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC_36")
 
-##### general linear age
-png(paste(data_prefix, "DNAmTL_by_Age.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
+data_prefix <- "LBC_36_"
+
+##DNAmTL vs Age, with Average Trajectories
+
+png(paste(data_prefix, "DNAmTL_by_Age.png", sep = ""), width = 8, height = 8, units = 'in', res = 300)
 ggplot(LBC_36, aes(x=age, y=DNAmTL)) +
-  geom_point(shape=18) +
+  geom_point(shape=16, alpha = 0.4) +
   geom_smooth(method=lm, se=TRUE) +
-  theme (text=element_text(size=16, family="Arial"))
+  ggtitle ("DNAmTL by Age") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  xlim(65, 85) +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
 dev.off()
 
 png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Colored.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
 ggplot(LBC_36, aes(x=age, y=DNAmTL)) +
-  geom_point(shape=18, aes(colour=sex)) +
+  geom_point(shape=16, aes(colour=sex), alpha = 0.6) +
   geom_smooth(method=lm, se=TRUE) +
-  theme (text=element_text(size=16, family="Arial"))
+  scale_color_brewer(palette="Dark2") +
+  ggtitle ("DNAmTL by Age, With Sex") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  xlim(65, 85) +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
 dev.off()
+
 
 png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Ln.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
 ggplot(LBC_36, aes(x=age, y=DNAmTL)) +
-  geom_point(shape=18) +
+  geom_point(shape=16, alpha = 0.4) +
   geom_smooth(method=lm, se=TRUE, aes(color=sex)) +
-  theme (text=element_text(size=16, family="Arial"))
+  scale_color_brewer(palette = "Dark2") +
+  ggtitle ("DNAmTL by Age, With Average Trajectories by Sex") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  xlim(65, 85) +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
 dev.off()
 
 
-######################
-#### both cohorts
+## Distributions of lengths against age bins
 
-data_prefix <- "LBC_"
+png(paste(data_prefix, "ViolinPlot_and_BoxPlot_Telomere_dist_by_age_bins.png", sep = ""), width = 16, height = 10, units = 'in', res = 400)
+ggplot(LBC_36, aes(x=Age_Bin, y = DNAmTL, fill=Age_Bin)) +
+  geom_violin(width = 1) +
+  geom_boxplot(width = 0.5, color = "black", alpha = 0.8) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Violin and Box Plot of DNAmTL Distributions per Age Bin") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+png(paste(data_prefix, "BoxPlot_and_Jitter_Telomere_dist_by_age_bins.png", sep = ""), width = 16, height = 10, units = 'in', res = 400)
+ggplot(LBC_36, aes(x=Age_Bin, y = DNAmTL, fill=Age_Bin)) +
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.8, size = 0.4)+
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Box and Jitter Plot of DNAmTL Distributions per Age Bin") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+png(paste(data_prefix, "Ridgeplot_Telomere_dist_by_age_bins.png", sep = ""), width = 10, height = 12.5, units = 'in', res = 500)
+ggplot(LBC_36, aes(x = DNAmTL, y = Age_Bin, fill = Age_Bin)) +
+  geom_density_ridges(jittered_points = TRUE, 
+                      position = position_points_jitter(width = 0.01, height = 0), 
+                      point_shape = "|", point_size=5, point_alpha = 1, alpha = 1) +
+  theme_ridges () +
+  scale_fill_manual(values = pal)+
+  stat_density_ridges(quantile_lines = TRUE, quantiles = 4) +
+  theme(legend.position = "none") + 
+  ggtitle ("Ridgeplot of DNAmTL Distributions per Age Bin") +
+  xlab ("DNAmTL") +
+  ylab ("Age (Years)") +
+  xlim (5, 8) +
+  scale_y_discrete(limits=rev) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title.y = element_text(hjust = 0.5),
+    axis.title.x = element_text(hjust = 0.5),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+######################################################
+##### ALL LBC #####
 
 setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC")
 
-png(paste(data_prefix, "DNAmTL_by_Age.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
-ggplot(LBC, aes(x=age, y=DNAmTL)) +
-  geom_point(shape=18) +
+data_prefix <- "LBC_"
+
+##DNAmTL vs Age, with Average Trajectories
+
+png(paste(data_prefix, "DNAmTL_by_Age.png", sep = ""), width = 8, height = 8, units = 'in', res = 300)
+ggplot(LBC_all, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=16, alpha = 0.4) +
   geom_smooth(method=lm, se=TRUE) +
-  theme (text=element_text(size=16, family="Arial"))
+  ggtitle ("DNAmTL by Age") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  xlim(65, 100) +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
 dev.off()
 
 png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Colored.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
-ggplot(LBC, aes(x=age, y=DNAmTL)) +
-  geom_point(shape=18, aes(colour=cohort)) +
+ggplot(LBC_all, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=16, aes(colour=sex), alpha = 0.6) +
   geom_smooth(method=lm, se=TRUE) +
-  theme (text=element_text(size=16, family="Arial"))
+  scale_color_brewer(palette="Dark2") +
+  ggtitle ("DNAmTL by Age, With Sex") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  xlim(65, 100) +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
 dev.off()
+
 
 png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Ln.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
-ggplot(LBC, aes(x=age, y=DNAmTL)) +
-  geom_point(shape=18) +
-  geom_smooth(method=lm, se=TRUE, aes(color=cohort)) +
-  theme (text=element_text(size=16, family="Arial"))
+ggplot(LBC_all, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=16, alpha = 0.4) +
+  geom_smooth(method=lm, se=TRUE, aes(color=sex)) +
+  scale_color_brewer(palette = "Dark2") +
+  ggtitle ("DNAmTL by Age, With Average Trajectories by Sex") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  xlim(65, 100) +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
 dev.off()
 
 
-#####
-# 1921 vs 1936 - first and last cohort
-# does "start year" have an influence?
+## Distributions of lengths against age bins
 
-LBC_36_W4 <- LBC_36 %>% filter(WAVE==4) 
-LBC_21_W1 <- LBC_21 %>% filter(WAVE==1)
-
-LBC_merge <- rbind(LBC_36_W4, LBC_21_W1)
-LBC_merge
-
-dim(LBC_36_W4)
-dim(LBC_21_W1)
-dim(LBC_merge)
-
-data_prefix <- "LBC_Merge_36.4_21.1_"
-
-setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC_merge")
-
-png(paste(data_prefix, "DNAmTL_by_Age.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
-ggplot(LBC_merge, aes(x=age, y=DNAmTL)) +
-  geom_point(shape=18) +
-  geom_smooth(method=lm, se=TRUE) +
-  theme (text=element_text(size=16, family="Arial"))
-dev.off()
-
-png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Colored.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
-ggplot(LBC_merge, aes(x=age, y=DNAmTL)) +
-  geom_point(shape=18, aes(colour=cohort)) +
-  geom_smooth(method=lm, se=TRUE) +
-  theme (text=element_text(size=16, family="Arial"))
-dev.off()
-
-png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Ln.png", sep = ""), width = 10, height = 10, units = 'in', res = 300)
-ggplot(LBC_merge, aes(x=age, y=DNAmTL)) +
-  geom_point(shape=18) +
-  geom_smooth(method=lm, se=TRUE, aes(color=cohort)) +
-  theme (text=element_text(size=16, family="Arial"))
+png(paste(data_prefix, "ViolinPlot_and_BoxPlot_Telomere_dist_by_age_bins.png", sep = ""), width = 16, height = 10, units = 'in', res = 400)
+ggplot(LBC_all, aes(x=Age_Bin, y = DNAmTL, fill=Age_Bin)) +
+  geom_violin(width = 1) +
+  geom_boxplot(width = 0.5, color = "black", alpha = 0.8) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Violin and Box Plot of DNAmTL Distributions per Age Bin") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
 dev.off()
 
 
-##### Longitudinal Tracing
-ggplot(LBC_21, aes(x=age, y=DNAmTL, group=Sample_Name)) +
-  geom_line()+
-  geom_point()
+png(paste(data_prefix, "BoxPlot_and_Jitter_Telomere_dist_by_age_bins.png", sep = ""), width = 16, height = 10, units = 'in', res = 400)
+ggplot(LBC_all, aes(x=Age_Bin, y = DNAmTL, fill=Age_Bin)) +
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.8, size = 0.4)+
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Box and Jitter Plot of DNAmTL Distributions per Age Bin") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
 
-ggplot(LBC_36, aes(x=age, y=DNAmTL, group=Sample_Name)) +
-  geom_line()+
-  geom_point()
+png(paste(data_prefix, "Ridgeplot_Telomere_dist_by_age_bins.png", sep = ""), width = 10, height = 12.5, units = 'in', res = 500)
+ggplot(LBC_all, aes(x = DNAmTL, y = Age_Bin, fill = Age_Bin)) +
+  geom_density_ridges(jittered_points = TRUE, 
+                      position = position_points_jitter(width = 0.01, height = 0), 
+                      point_shape = "|", point_size=5, point_alpha = 1, alpha = 1) +
+  theme_ridges () +
+  scale_fill_manual(values = pal)+
+  stat_density_ridges(quantile_lines = TRUE, quantiles = 4) +
+  theme(legend.position = "none") + 
+  ggtitle ("Ridgeplot of DNAmTL Distributions per Age Bin") +
+  xlab ("DNAmTL") +
+  ylab ("Age (Years)") +
+  xlim (5, 8) +
+  scale_y_discrete(limits=rev) +
+  labs (caption = "Data: Lothian Birth Cohort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title.y = element_text(hjust = 0.5),
+    axis.title.x = element_text(hjust = 0.5),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+
+
+#################################################
+
+##### Longitudinal Tracing #####
+
+## Plot DNAmTL of each individual (as a traced line), against each wave of testing
+
+ggplot(LBC_36, aes(x=WAVE, y=DNAmTL, group=Sample_Name)) +
+  geom_point(alpha = 0.5, size = 0.3) +
+  geom_line(alpha = 0.5, size = 0.3) +
+  ggtitle("Lineplot of DNAmTL Lengths For Each Individual Against Testing Waves") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim (5.5, 8) +
+  theme (
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+
+
+test <=-)
