@@ -1,0 +1,521 @@
+# shambles of code - will neaten it up + loops to make it more streamlined
+# pls no judgement x
+
+
+
+#################################################
+
+##### Longitudinal Tracing #####
+
+#################################################
+
+#gather necessary data
+LBC_trace <- LBC_all [,c("Sample_Name", "DNAmTL", "sex", "WAVE", "cohort")]
+
+#spread the data by WAVE, with DNAmTL for each wave described
+#do we spread by WAVE, or by age bin???? regardless, still a follow up
+LBC_waves <- spread(LBC_trace, WAVE, DNAmTL)
+dim(LBC_waves)
+
+LBC_waves_36 <- LBC_waves[str_detect(LBC_waves$cohort, "LBC36"),]
+LBC_waves_21 <- LBC_waves[str_detect(LBC_waves$cohort, "LBC21"),]
+
+####
+
+colnames(LBC_waves_36)[4]<- "Wave_1"
+colnames(LBC_waves_36)[5]<- "Wave_2"
+colnames(LBC_waves_36)[6]<- "Wave_3"
+colnames(LBC_waves_36)[7]<- "Wave_4"
+
+colnames(LBC_waves_21)[4]<- "Wave_1"
+colnames(LBC_waves_21)[6]<- "Wave_2"
+colnames(LBC_waves_21)[7]<- "Wave_3"
+
+#rename so columns go 123 not 134
+LBC_waves_21 <- LBC_waves_21[-c(5)]
+
+
+#then we get conditional survivor identity column i.e. the wave they survived until
+
+LBC_waves_21$survivor[LBC_waves_21$Wave_1 > 0] <- "1"
+LBC_waves_21$survivor[LBC_waves_21$Wave_2 > 0] <- "2"
+LBC_waves_21$survivor[LBC_waves_21$Wave_3 > 0] <- "3"
+
+LBC_waves_36$survivor[LBC_waves_36$Wave_1 > 0] <- "1"
+LBC_waves_36$survivor[LBC_waves_36$Wave_2 > 0] <- "2"
+LBC_waves_36$survivor[LBC_waves_36$Wave_3 > 0] <- "3"
+LBC_waves_36$survivor[LBC_waves_36$Wave_4 > 0] <- "4"
+
+#subset survivors by columns
+LBC_waves_21_survivors_1 <- LBC_waves_21[(LBC_waves_21$survivor=="1"),]
+LBC_waves_21_survivors_2 <- LBC_waves_21[(LBC_waves_21$survivor=="2"),]
+LBC_waves_21_survivors_3 <- LBC_waves_21[(LBC_waves_21$survivor=="3"),]
+
+
+LBC_waves_36_survivors_1 <- LBC_waves_36[(LBC_waves_36$survivor=="1"),]
+LBC_waves_36_survivors_2 <- LBC_waves_36[(LBC_waves_36$survivor=="2"),]
+LBC_waves_36_survivors_3 <- LBC_waves_36[(LBC_waves_36$survivor=="3"),]
+LBC_waves_36_survivors_4 <- LBC_waves_36[(LBC_waves_36$survivor=="4"),]
+
+
+#we subset by the columns
+LBC_waves_36_W1_2 <- LBC_waves_36[c(1:5, 8)]
+LBC_waves_36_W2_3 <- LBC_waves_36[c(1:3,5:6, 8)]
+LBC_waves_36_W3_4 <- LBC_waves_36[c(1:3,6:8)]
+
+LBC_waves_21_W1_2 <- LBC_waves_21[c(1:5, 7)]
+LBC_waves_21_W2_3 <- LBC_waves_21[c(1:3,5:7)]
+
+
+#calculate difference between waves
+LBC_waves_36_W1_2$slope <- (LBC_waves_36$"Wave_1")-(LBC_waves_36$"Wave_2")
+LBC_waves_36_W2_3$slope <- (LBC_waves_36$"Wave_2")-(LBC_waves_36$"Wave_3")
+LBC_waves_36_W3_4$slope <- (LBC_waves_36$"Wave_3")-(LBC_waves_36$"Wave_4")
+
+LBC_waves_21_W1_2$slope <- (LBC_waves_21$"Wave_1")-(LBC_waves_21$"Wave_2")
+LBC_waves_21_W2_3$slope <- (LBC_waves_21$"Wave_2")-(LBC_waves_21$"Wave_3")
+
+
+#then we reformat to get it available for plotting
+LBC_waves_36_W1_2 <- gather(LBC_waves_36_W1_2, "Wave", "DNAmTL", 4:5)
+LBC_waves_36_W2_3 <- gather(LBC_waves_36_W2_3, "Wave", "DNAmTL", 4:5)
+LBC_waves_36_W3_4 <- gather(LBC_waves_36_W3_4, "Wave", "DNAmTL", 4:5)
+
+LBC_waves_21_W1_2 <- gather(LBC_waves_21_W1_2, "Wave", "DNAmTL", 4:5)
+LBC_waves_21_W2_3 <- gather(LBC_waves_21_W2_3, "Wave", "DNAmTL", 4:5)
+
+
+#reformat for survivors as well
+LBC_waves_21_survivors_2 <- gather(LBC_waves_21_survivors_2, "Wave", "DNAmTL", 4:5)
+LBC_waves_21_survivors_3 <- gather(LBC_waves_21_survivors_3, "Wave", "DNAmTL", 4:6)
+
+LBC_waves_36_survivors_2 <- gather(LBC_waves_36_survivors_2, "Wave", "DNAmTL", 4:5)
+LBC_waves_36_survivors_3 <- gather(LBC_waves_36_survivors_3, "Wave", "DNAmTL", 4:6)
+LBC_waves_36_survivors_4 <- gather(LBC_waves_36_survivors_4, "Wave", "DNAmTL", 4:7)
+
+
+
+
+############## 36
+
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC_36")
+
+data_prefix <- "LBC_36_"
+
+png(paste(data_prefix, "Long_Tracing_slopes.png", sep = ""), width = 8, height = 6, units = 'in', res = 300)
+ggplot()+
+  geom_line(LBC_waves_36_W1_2, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, colour=slope<0), alpha = 0.5, size=0.7) +
+  geom_line(LBC_waves_36_W2_3, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, colour=slope<0), alpha = 0.5, size=0.7) +
+  geom_line(LBC_waves_36_W3_4, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, colour=slope<0), alpha = 0.5, size=0.7) +
+  scale_color_brewer(palette = "Set1") +
+  ggtitle("Longitudinal Tracing of Individual DNAmTL Lengths Against Testing Waves") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim (5.5, 9) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme (
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+png(paste(data_prefix, "Long_Tracing_With_Interpolation.png", sep = ""), width = 8, height = 6, units = 'in', res = 300)
+ggplot()+
+  geom_line(LBC_waves_36_survivors_4[!is.na(LBC_waves_36_survivors_4$DNAmTL),], mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, color="survivor"), alpha = 0.6, size=0.7) +
+  geom_line(LBC_waves_36_survivors_3[!is.na(LBC_waves_36_survivors_3$DNAmTL),], mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name), alpha = 0.4, size=0.7) +
+  geom_line(LBC_waves_36_survivors_2[!is.na(LBC_waves_36_survivors_2$DNAmTL),], mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name), alpha = 0.4, size=0.7) +
+  ggtitle("Longitudinal Tracing of Individual DNAmTL Lengths Against Testing Waves") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim (5.5, 9) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme (
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+png(paste(data_prefix, "Long_Tracing_Without_Interpolation.png", sep = ""), width = 10, height = 8, units = 'in', res = 300)
+ggplot()+
+  geom_line(LBC_waves_36_survivors_4, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, color="survivor"), alpha = 0.6, size=0.7) +
+  geom_line(LBC_waves_36_survivors_3, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name), alpha = 0.4, size=0.7) +
+  geom_line(LBC_waves_36_survivors_2, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name), alpha = 0.4, size=0.7) +
+  ggtitle("Longitudinal Tracing of DNAmTL Lengths of Survivors Against Testing Waves") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim (5.5, 7.5) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme (
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+############## 21
+
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC_21")
+
+data_prefix <- "LBC_21_"
+
+png(paste(data_prefix, "Long_Tracing_slopes.png", sep = ""), width = 8, height = 6, units = 'in', res = 300)
+ggplot()+
+  geom_line(LBC_waves_21_W1_2, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, colour=slope<0), alpha = 0.5, size=0.7) +
+  geom_line(LBC_waves_21_W2_3, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, colour=slope<0), alpha = 0.5, size=0.7) +
+  ggtitle("Longitudinal Tracing of Individual DNAmTL Lengths Against Testing Waves") +
+  scale_color_brewer(palette = "Set1") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim (5.5, 9) +
+  labs (caption = "Data: Lothian Birth Cohort 1921") +
+  theme (
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+png(paste(data_prefix, "Long_Tracing_With_Interpolation.png", sep = ""), width = 8, height = 6, units = 'in', res = 300)
+ggplot()+
+  geom_line(LBC_waves_21_survivors_3[!is.na(LBC_waves_21_survivors_3$DNAmTL),], mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, color = "survivor"), alpha = 0.6, size=0.7) +
+  geom_line(LBC_waves_21_survivors_2[!is.na(LBC_waves_21_survivors_2$DNAmTL),], mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name), alpha = 0.4, size=0.7) +
+  ggtitle("Longitudinal Tracing of Individual DNAmTL Lengths Against Testing Waves") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim (5.5, 9) +
+  labs (caption = "Data: Lothian Birth Cohort 1921") +
+  theme (
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+png(paste(data_prefix, "Long_Tracing_Without_Interpolation.png", sep = ""), width = 10, height = 8, units = 'in', res = 300)
+ggplot()+
+  geom_line(LBC_waves_21_survivors_3, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, color = survivor), alpha = 0.6, size=0.7) +
+  geom_line(LBC_waves_21_survivors_2, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name), alpha = 0.4, size=0.7) +
+  ggtitle("Longitudinal Tracing of DNAmTL Lengths of Survivors Against Testing Waves") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim (5.5, 7.5) +
+  labs (caption = "Data: Lothian Birth Cohort 1921") +
+  theme (
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+
+
+######### all LBC
+
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC")
+
+data_prefix <- "LBC_"
+
+#replace all waves names from LBC_W1.... with relevant
+
+LBC_waves_21_W1_2$Wave <- gsub("Wave_1", "Wave_4", LBC_waves_21_W1_2$Wave)
+LBC_waves_21_W1_2$Wave <- gsub("Wave_2", "Wave_5", LBC_waves_21_W1_2$Wave)
+
+LBC_waves_21_W2_3$Wave <- gsub("Wave_2", "Wave_5", LBC_waves_21_W1_2$Wave)
+LBC_waves_21_W2_3$Wave <- gsub("Wave_3", "Wave_6", LBC_waves_21_W1_2$Wave)
+
+
+LBC_waves_21_survivors_2$Wave <- gsub("Wave_1", "Wave_4", LBC_waves_21_survivors_2$Wave)
+LBC_waves_21_survivors_2$Wave <- gsub("Wave_2", "Wave_5", LBC_waves_21_survivors_2$Wave)
+
+LBC_waves_21_survivors_3$Wave <- gsub("Wave_2", "Wave_5", LBC_waves_21_survivors_3$Wave)
+LBC_waves_21_survivors_3$Wave <- gsub("Wave_3", "Wave_6", LBC_waves_21_survivors_3$Wave)
+
+
+
+png(paste(data_prefix, "Long_Tracing_slopes.png", sep = ""), width = 8, height = 8, units = 'in', res = 300)
+ggplot()+
+  geom_line(LBC_waves_36_W1_2, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, colour=slope<0), alpha = 0.5, size=0.7) +
+  geom_line(LBC_waves_36_W2_3, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, colour=slope<0), alpha = 0.5, size=0.7) +
+  geom_line(LBC_waves_36_W3_4, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, colour=slope<0), alpha = 0.5, size=0.7) +
+  geom_line(LBC_waves_21_W1_2, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, colour=slope<0), alpha = 0.5, size=0.7) +
+  geom_line(LBC_waves_21_W2_3, mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, colour=slope<0), alpha = 0.5, size=0.7) +
+  ggtitle("Longitudinal Tracing of DNAmTL Lengths For Each Individual Against Testing Waves") +
+  scale_color_brewer(palette = "Set1") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim (5.5, 7.5) +
+  labs (caption = "Data: Lothian Birth Cohorts") +
+  theme (
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+#png(paste(data_prefix, "Long_Tracing_Survivors_Interpolation.png", sep = ""), width = 8, height = 8, units = 'in', res = 300)
+#ggplot()+
+#  geom_line(LBC_waves_21_survivors_3, mapping = aes(x=Wave, y = DNAmTL, group=Sample_Name, colour = "survivor"), alpha = 0.6, size = 0.7) +
+#  geom_line(LBC_waves_36_survivors_4, mapping = aes(x=Wave, y = DNAmTL, group=Sample_Name, colour = "survivor"), alpha = 0.6, size = 0.7) +
+#  geom_line(LBC_waves_21_survivors_2, mapping = aes(x=Wave, y = DNAmTL, group=Sample_Name), alpha = 0.4, size = 0.7) +
+#  geom_line(LBC_waves_36_survivors_3, mapping = aes(x=Wave, y = DNAmTL, group=Sample_Name), alpha = 0.4, size = 0.7) +
+#  geom_line(LBC_waves_36_survivors_2, mapping = aes(x=Wave, y = DNAmTL, group=Sample_Name), alpha = 0.4, size = 0.7) +
+#  ggtitle("Longitudinal Tracing of DNAmTL Lengths For Each Individual Against Testing Waves") +
+#  scale_color_brewer(palette = "Set1") +
+#  xlab ("Wave") +
+#  ylab ("DNAmTL") +
+#  ylim (5.5, 7.5) +
+# labs (caption = "Data: Lothian Birth Cohorts") +
+#  theme (
+#    plot.title = element_text(hjust = 0.5, face = "bold"),
+#    axis.line = element_line (size = 0.5)
+#  )
+#dev.off()
+
+
+
+
+###############################################################
+
+######### Scatter Plots with survivors annotated ##############
+
+###############################################################
+
+
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/Survivors")
+
+data_prefix <- "Survivors_"
+
+LBC_waves_36_survivors <- gather(LBC_waves_36, "Wave", "DNAmTL", 4:7)
+LBC_waves_36_survivors <- na.omit(LBC_waves_36_survivors)
+
+
+LBC_waves_21_survivors <- gather(LBC_waves_21, "Wave", "DNAmTL", 4:6)
+LBC_waves_21_survivors <- na.omit(LBC_waves_21_survivors)
+
+pal <- wes_palette("Darjeeling1", 4, type = "continuous")
+pal
+
+png(paste(data_prefix, "1936_Survivors_Scatter_by_Wave.png", sep = ""), width = 10, height = 8, units = 'in', res = 300)
+ggplot() +
+  geom_jitter(LBC_waves_36_survivors, mapping = aes(x=Wave, y=DNAmTL, color = survivor), width = 0.35) +
+  scale_x_discrete() +
+  scale_fill_manual(values = pal)+
+  ggtitle ("DNAmTL of LBC 1936 'Survivors' by Wave ") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim(5.5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+png(paste(data_prefix, "1921_Survivors_Scatter_by_Wave.png", sep = ""), width = 10, height = 8, units = 'in', res = 300)
+ggplot() +
+  geom_jitter(LBC_waves_21_survivors, mapping = aes(x=Wave, y=DNAmTL, color = survivor), width = 0.35) +
+  scale_x_discrete() +
+  scale_fill_manual(values = pal)+
+  ggtitle ("DNAmTL of LBC 1921 'Survivors' by Wave") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim(5.5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+
+#distributions of telomere lengths for survivors
+
+png(paste(data_prefix, "1936_Ridgeplot_Telomere_Distributions_Survivor_Waves.png", sep = ""), width = 10, height = 12.5, units = 'in', res = 500)
+ggplot(LBC_waves_36_survivors, aes(x = DNAmTL, y = Wave, fill = survivor, alpha = 0.4)) +
+  geom_density_ridges(jittered_points = TRUE, 
+                      position = position_points_jitter(width = 0.01, height = 0), 
+                      point_shape = "|", point_size=5, point_alpha = 1, alpha = 1) +
+  theme_ridges () +
+  scale_fill_manual(values = pal)+
+  stat_density_ridges(quantile_lines = TRUE, quantiles = 4) +
+  theme(legend.position = "none") + 
+  ggtitle ("LBC 1936: Ridgeplot of DNAmTL Distributions per Wave for Survivors") +
+  xlab ("DNAmTL") +
+  ylab ("Age (Years)") +
+  xlim (5, 8) +
+  scale_y_discrete(limits=rev) +
+  labs (caption = "Data: Lothian Birth Cohort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title.y = element_text(hjust = 0.5),
+    axis.title.x = element_text(hjust = 0.5),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+png(paste(data_prefix, "1921_Ridgeplot_Telomere_Distributions_Survivor_Waves.png", sep = ""), width = 10, height = 12.5, units = 'in', res = 500)
+ggplot(LBC_waves_21_survivors, aes(x = DNAmTL, y = Wave, fill = survivor, alpha = 0.4)) +
+  geom_density_ridges(jittered_points = TRUE, 
+                      position = position_points_jitter(width = 0.01, height = 0), 
+                      point_shape = "|", point_size=5, point_alpha = 1, alpha = 1) +
+  theme_ridges () +
+  scale_fill_manual(values = pal)+
+  stat_density_ridges(quantile_lines = TRUE, quantiles = 4) +
+  theme(legend.position = "none") + 
+  ggtitle ("LBC 1921: Ridgeplot of DNAmTL Distributions per Wave for Survivors") +
+  xlab ("DNAmTL") +
+  ylab ("Age (Years)") +
+  xlim (5, 8) +
+  scale_y_discrete(limits=rev) +
+  labs (caption = "Data: Lothian Birth Cohort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title.y = element_text(hjust = 0.5),
+    axis.title.x = element_text(hjust = 0.5),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+png(paste(data_prefix, "1921_ViolinPlot_and_BoxPlot_Telomere_dist_by_Survivor_Waves.png", sep = ""), width = 16, height = 10, units = 'in', res = 400)
+ggplot(LBC_waves_21_survivors, aes(x=Wave, y = DNAmTL, fill=survivor)) +
+  geom_violin(width = 0.5) +
+  geom_boxplot(width = 0.5, color = "black", alpha = 0.8) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("LBC 1921: Violin and Box Plot of DNAmTL Distributions per Wave for Survivors") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+png(paste(data_prefix, "1936_ViolinPlot_and_BoxPlot_Telomere_dist_by_Survivor_Waves.png", sep = ""), width = 16, height = 10, units = 'in', res = 400)
+ggplot(LBC_waves_36_survivors, aes(x=Wave, y = DNAmTL, fill=survivor)) +
+  geom_violin(width = 0.5) +
+  geom_boxplot(width = 0.5, color = "black", alpha = 0.8) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("LBC 1936: Violin and Box Plot of DNAmTL Distributions per Wave for Survivors") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  ylim(5, 8) +
+  labs (caption = "Data: Lothian Birth Cohort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+compare_means(DNAmTL~survivor, data = LBC_waves_36_survivors)
+compare_means(DNAmTL~survivor, data = LBC_waves_21_survivors)
+
+
+png(paste(data_prefix, "1936_BoxPlot_and_Jitter_Telomere_dist_by_Survivor_Waves.png", sep = ""), width = 8, height = 6, units = 'in', res = 300)
+ggplot(LBC_waves_36_survivors, aes(x=Wave, y = DNAmTL, fill=survivor)) +
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.8, size = 0.4)+
+  geom_boxplot(width = 0.5, color = "black", alpha = 1) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("LBC 1936: Box and Jitter Plot of DNAmTL Distributions for Survivors") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim(5.5, 9) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+#####subset data by each waves for STATISTICAL ANALYSIS
+
+LBC_36_survivor_W1 <- LBC_waves_36_survivors[str_detect(LBC_waves_36_survivors$Wave, "Wave_1"),]
+LBC_36_survivor_W2 <- LBC_waves_36_survivors[str_detect(LBC_waves_36_survivors$Wave, "Wave_2"),]
+LBC_36_survivor_W3 <- LBC_waves_36_survivors[str_detect(LBC_waves_36_survivors$Wave, "Wave_3"),]
+LBC_36_survivor_W4 <- LBC_waves_36_survivors[str_detect(LBC_waves_36_survivors$Wave, "Wave_4"),]
+
+compare_means(DNAmTL~survivor, data=LBC_36_survivor_W3)
+
+
+LBC_21_survivor_W1 <- LBC_waves_21_survivors[str_detect(LBC_waves_21_survivors$Wave, "Wave_1"),]
+LBC_21_survivor_W2 <- LBC_waves_21_survivors[str_detect(LBC_waves_21_survivors$Wave, "Wave_2"),]
+LBC_21_survivor_W3 <- LBC_waves_21_survivors[str_detect(LBC_waves_21_survivors$Wave, "Wave_3"),]
+
+compare_means(DNAmTL~survivor, data=LBC_21_survivor_W2)
+
+
+####################
+
+
+
+
+png(paste(data_prefix, "1921_BoxPlot_and_Jitter_Telomere_dist_by_Survivor_Waves.png", sep = ""), width = 8, height = 6, units = 'in', res = 400)
+ggplot(LBC_waves_21_survivors, aes(x=Wave, y = DNAmTL, fill=survivor)) +
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.8, size = 0.4)+
+  geom_boxplot(width = 0.5, color = "black", alpha = 1) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("LBC 1921: Box and Jitter Plot of DNAmTL Distributions for Survivors") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim(5.5, 9) +
+  labs (caption = "Data: Lothian Birth Cohort 1921") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+png(paste(data_prefix, "Long_Tracing_With_Interpolation.png", sep = ""), width = 8, height = 6, units = 'in', res = 300)
+ggplot()+
+  
+  geom_line(LBC_waves_21_survivors_3[!is.na(LBC_waves_21_survivors_3$DNAmTL),], mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, color = "survivor"), alpha = 0.6, size=0.7) +
+  stat_smooth(LBC_waves_21_survivors_3,mapping = aes(x=Wave, y=DNAmTL, group=Sample_Name, color = "survivor"), method = "lm",  fun = mean, se = TRUE)+
+  stat_summary(LBC_waves_21_survivors_3, mapping = aes(group = "survivor"), geom = "point", fun = mean, shape = 15, size = 3) +
+  
+  geom_line(LBC_waves_21_survivors_2[!is.na(LBC_waves_21_survivors_2$DNAmTL),], mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name), alpha = 0.4, size=0.7) +
+
+  
+  ggtitle("Longitudinal Tracing of Individual DNAmTL Lengths Against Testing Waves") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim (5.5, 9) +
+  labs (caption = "Data: Lothian Birth Cohort 1921") +
+  theme (
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+png(paste(data_prefix, "Long_Tracing_With_Interpolation.png", sep = ""), width = 8, height = 6, units = 'in', res = 300)
+ggplot()+
+  geom_line(LBC_waves_36_survivors_4[!is.na(LBC_waves_36_survivors_4$DNAmTL),], mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name, color="survivor"), alpha = 0.6, size=0.7) +
+  geom_line(LBC_waves_36_survivors_3[!is.na(LBC_waves_36_survivors_3$DNAmTL),], mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name), alpha = 0.4, size=0.7) +
+  geom_line(LBC_waves_36_survivors_2[!is.na(LBC_waves_36_survivors_2$DNAmTL),], mapping= aes(x=Wave, y=DNAmTL, group=Sample_Name), alpha = 0.4, size=0.7) +
+  ggtitle("Longitudinal Tracing of Individual DNAmTL Lengths Against Testing Waves") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim (5.5, 9) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme (
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+
