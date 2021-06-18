@@ -1,0 +1,309 @@
+##########################################
+
+#### Distributions + General Plotting ####
+
+##########################################
+
+library("tidyr")
+library("ggplot2")
+library("stringr")
+library("dplyr")
+library("extrafont")
+library ("ggridges")
+library("RColorBrewer")
+library ("wesanderson")
+library("ggpubr")
+
+
+#file locations and datasets
+
+#Generation scotland
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/GS")
+i <- GS
+data_prefix <- "GS_"
+
+#LBC all
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC_all")
+i <- LBC
+data_prefix <- "LBC_all_"
+
+#LBC 21
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC_21")
+i <- LBC_21
+data_prefix <- "LBC_21_"
+
+#LBC 36
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/LBC_36")
+i <- LBC_36
+data_prefix <- "LBC_36_"
+
+#all datasets
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/All")
+i <- all_data
+data_prefix <- "all_data"
+
+
+#Batch Effects - LBC Overlap (36-W4, 21-W1) - LBC and GS Overlap (Ages 67 <)
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/Batch_Effects")
+
+
+##############################
+
+########   Plotting   ########
+
+##############################
+
+#replace caption as necessary
+
+####
+#### DNAmTL vs Age
+png(paste(data_prefix, "DNAmTL_by_Age.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
+ggplot(i, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=16, alpha = 0.4) +
+  geom_smooth(method=lm, se=TRUE) +
+  ggtitle ("DNAmTL by Age") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  xlim(18, 95) +
+  ylim(5.5, 9) +
+  labs (caption = "Data: Generation Scotland") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+#with Sex regression
+png(paste(data_prefix, "DNAmTL_by_Age_With_Sex_Ln.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
+ggplot(i, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=16, alpha = 0.4) +
+  geom_smooth(method=lm, se=TRUE, aes(color=sex)) +
+  scale_color_brewer(palette = "Dark2") +
+  ggtitle ("DNAmTL by Age, With Average Trajectories by Sex") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  xlim(18, 100) +
+  ylim(6, 9) +
+  labs (caption = "Data: Generation Scotland") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+####
+
+#get number of age bins for colour setup and apply to palette variable
+a <- unique(i$Age_Bin)
+a <- length(a)
+pal <- wes_palette("Darjeeling1", a, type = "continuous")
+
+#### Distributions of DNAmTL against age bins
+png(paste(data_prefix, "ViolinPlot_and_BoxPlot_Telomere_dist_by_age_bins.png", sep = ""), width = 9, height = 6, units = 'in', res = 300)
+ggplot(i, aes(x=Age_Bin, y = DNAmTL, fill=Age_Bin)) +
+  geom_violin(width = 1) +
+  geom_boxplot(width = 0.5, color = "black", alpha = 0.8) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Violin and Box Plot of DNAmTL Distributions per Age Bin") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  ylim(5.5, 9) +
+  labs (caption = "Data: Generation Scotland") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+png(paste(data_prefix, "BoxPlot_and_Jitter_Telomere_dist_by_age_bins.png", sep = ""), width = 9, height = 6, units = 'in', res = 300)
+ggplot(i, aes(x=Age_Bin, y = DNAmTL, fill=Age_Bin)) +
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.6, size = 0.2)+
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Box and Jitter Plot of DNAmTL Distributions per Age Bin") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  ylim(5.5, 9) +
+  labs (caption = "Data: Generation Scotland") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+png(paste(data_prefix, "Ridgeplot_Telomere_dist_by_age_bins.png", sep = ""), width = 6, height = 10, units = 'in', res = 300)
+ggplot(i, aes(x = DNAmTL, y = Age_Bin, fill = Age_Bin)) +
+  geom_density_ridges(jittered_points = TRUE, 
+                      position = position_points_jitter(width = 0.01, height = 0), 
+                      point_shape = "|", point_size=5, point_alpha = 1, alpha = 1) +
+  theme_ridges () +
+  scale_fill_manual(values = pal)+
+  stat_density_ridges(quantile_lines = TRUE, quantiles = 4, alpha = 0.8) +
+  theme(legend.position = "none") + 
+  ggtitle ("Ridgeplot of DNAmTL Distributions per Age Bin") +
+  xlab ("DNAmTL") +
+  ylab ("Age (Years)") +
+  xlim (5.5, 9) +
+  scale_y_discrete(limits=rev) +
+  labs (caption = "Data: Generation Scotland") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title.y = element_text(hjust = 0.5),
+    axis.title.x = element_text(hjust = 0.5),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+####
+
+#get number of TL bins for colour setup and apply to palette variable
+a <- unique(i$TL_bin)
+a <- length(a)
+pal <- wes_palette("Darjeeling1", a, type = "continuous")
+
+#### Age distributions by telomere bin, similar plots as above
+png(paste(data_prefix, "ViolinPlot_and_BoxPlot_Age_Dist_By_Telomere_Bins.png", sep = ""), width = 16, height = 10, units = 'in', res = 400)
+ggplot(i, aes(x=TL_bin, y = age, fill=TL_bin)) +
+  geom_violin(width = 1) +
+  geom_boxplot(width = 0.5, color = "black", alpha = 0.8) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Violin and Box Plot of Age Distributions per TL Bin") +
+  xlab ("DNAmTL Bin") +
+  ylab ("Age") +
+  ylim(18, 95) +
+  labs (caption = "Data: Generation Scotland") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+png(paste(data_prefix, "BoxPlot_and_Jitter_Age_Dist_By_Telomere_bins.png", sep = ""), width = 16, height = 10, units = 'in', res = 400)
+ggplot(i, aes(x=TL_bin, y = age, fill=TL_bin)) +
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.8, size = 0.4)+
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Box and Jitter Plot of Age Distributions per TL Bin") +
+  xlab ("DNAmTL Bin") +
+  ylab ("Age") +
+  ylim(18, 95) +
+  labs (caption = "Data: Generation Scotland") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+png(paste(data_prefix, "Ridgeplot_Age_Dist_By_TL_Bins.png", sep = ""), width = 10, height = 12.5, units = 'in', res = 500)
+ggplot(i, aes(x = age, y = TL_bin, fill = TL_bin)) +
+  geom_density_ridges(jittered_points = TRUE, 
+                      position = position_points_jitter(width = 0.01, height = 0), 
+                      point_shape = "|", point_size=5, point_alpha = 1, alpha = 1) +
+  theme_ridges () +
+  #scale_fill_manual(values = pal)+
+  stat_density_ridges(quantile_lines = TRUE, quantiles = 4) +
+  theme(legend.position = "none") + 
+  ggtitle ("Ridgeplot of DNAmTL Distributions per Age Bin") +
+  xlab ("Age") +
+  ylab ("DNAmTL Bin") +
+  xlim (18, 95) +
+  scale_y_discrete(limits=rev) +
+  labs (caption = "Data: Generation Scotland") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title.y = element_text(hjust = 0.5),
+    axis.title.x = element_text(hjust = 0.5),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+
+
+
+
+###############################################################################
+
+######## Other Plots! 
+
+
+### for all cohorts, with the cohort regression for each just for vis
+png(paste(data_prefix, "DNAmTL_by_Age_With_Cohort_Ln.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
+ggplot(all_data, aes(x=age, y=DNAmTL)) +
+  geom_point(shape=16, alpha = 0.6, aes(color=cohort), size = 0.8) +
+  geom_smooth(method=lm, se=TRUE, color="black", alpha = 0.5) +
+  geom_smooth(method=lm, se=TRUE, aes(linetype=cohort), color="red", show.legend=TRUE) +
+  scale_linetype_manual(values=c("solid", "dashed", "dotted")) +
+  scale_color_brewer(palette = "Dark2") +
+  ggtitle ("DNAmTL by Age") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  xlim(16, 95) +
+  ylim(5.5, 9) +
+  labs (caption = "Data: Generation Scotland and Lothian Birth Cohorts") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+
+###########
+
+### Batch effects plots and statistical significance
+
+#for the batch effects datasets!
+
+png(paste(data_prefix, "BoxPlot_and_Jitter_Telomere_dist_by_age_bins.png", sep = ""), width = 9, height = 6, units = 'in', res = 300)
+ggplot(i, aes(x=Age_Bin, y = DNAmTL, fill=dataset)) +
+  stat_compare_means(aes(group = dataset), label = "p.signif", method = "t.test") +
+  geom_jitter(aes(colour = dataset), shape=16, position=position_jitter(0.2), alpha = 0.6, size = 0.2)+
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Box and Jitter Plot of DNAmTL Distributions per Age Bin") +
+  xlab ("Age (Years)") +
+  ylab ("DNAmTL") +
+  ylim(5.5, 9) +
+  labs (caption = "Data: Lothian Birth Cohort and Generation Scotland") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+## test for statistical significance between LBC and GS
+i_66 <- i[str_detect(i$Age_Bin, "66-70"),]
+i_71 <- i[str_detect(i$Age_Bin, "71-75"),]
+i_76 <- i[str_detect(i$Age_Bin, "76-80"),]
+i_81 <- i[str_detect(i$Age_Bin, "81-85"),]
+i_86 <- i[str_detect(i$Age_Bin, "86-90"),]
+
+compare_means(DNAmTL~dataset, data=i_86)
+t.test(DNAmTL~cohort, data=i)
+
+
+
+###################################################################################
+
+#### unfinished
+test1 <- LBC_waves_21_survivors_3[str_detect(LBC_waves_21_survivors_3$Wave, "Wave_1"),]
+test2 <- LBC_waves_36_survivors_4[str_detect(LBC_waves_36_survivors_4$Wave, "Wave_4"),]
+final <- rbind(test1, test2)
+
+png(paste(data_prefix, "Difference_21_36_survivors.png", sep = ""), width = 9, height = 6, units = 'in', res = 300)
+ggplot(final, aes(x=cohort, y = DNAmTL, fill=cohort)) +
+  stat_compare_means(aes(group = cohort), label = "p.signif", method = "t.test") +
+  geom_jitter(aes(colour = cohort), shape=16, position=position_jitter(0.2), alpha = 0.6, size = 0.2)+
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Box and Jitter Plot of DNAmTL Distributions of LBC Survivors") +
+  xlab ("LBC Survivors") +
+  ylab ("DNAmTL") +
+  ylim(5.5, 9) +
+  labs (caption = "Data: Lothian Birth Cohort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
