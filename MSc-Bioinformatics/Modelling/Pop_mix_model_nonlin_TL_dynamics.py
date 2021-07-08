@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# 
 # # Itzkovitz Population Mixture Model
 # 
+# 
 # #### http://shalevlab.weizmann.ac.il/wp-content/uploads/2016/02/telomeres.pdf
+# 
 
-# In[261]:
+# In[1]:
 
 
 import numpy as np
@@ -18,52 +21,47 @@ import pandas as pd
 import os
 
 
+# 
 # ## Average telomere length
 # 
 
-# In[208]:
+# In[2]:
 
 
-# we setup the equation
+#we set up the equation
 def avg_tel(t, M, delta, alpha):
-    y = LO - ((2*M*delta)/alpha)*(1-math.e**(-alpha*t))
+    y = L0 - ((2*M*delta)/alpha) * (1-np.exp(-alpha*t))
     return y
 
 
-# In[235]:
+# In[3]:
 
 
-#parameters and set up
+# set up time
 t = np.linspace (18, 100, 1000)
-
-#parameters [initial length, division rate, fraction of attrition, death - division)
-#LO is just from the GS, everything else has no scientific basis rn haha
-
-LO = 8
-M = 1000
-delta = 0.00001
-alpha = 0.01
-
-
-# In[236]:
-
 
 # get GS data and extract what we need
 df = pd.read_csv('../Data/sheets/Generation_Scotland.csv', index_col=0)
 
-age_DNAmTL = df[["age", "DNAmTL"]]
-x_values = age_DNAmTL.age
-y_values = age_DNAmTL.DNAmTL
+GS_age_DNAmTL = df[["age", "DNAmTL"]]
+x_GS = GS_age_DNAmTL.age
+y_GS = GS_age_DNAmTL.DNAmTL
 
 
-# In[237]:
+# In[4]:
 
 
-# plotting scatter of GS data
-# vs our model
+# for playing around with
 
+#parameters
+L0 = 8.5
+M = 1000
+delta = 0.00002
+alpha = 0.02
+
+# plotting scatter of GS data vs model
 plt.plot(t, avg_tel(t, M, delta, alpha,), color = 'red')
-plt.scatter(x_values, y_values, s = 2)
+plt.scatter(x_GS, y_GS, s = 2)
 
 plt.ylabel('DNAmTL')
 plt.yscale('linear')
@@ -75,122 +73,59 @@ plt.xlim((10, 100))
 plt.show()
 
 
-# ## Curve Fitting
+# ---
 
-# #### scipy.optimize.curve_fit
+# 
+# ### Find LO based on dataset
+# 
 
-# In[238]:
+# No scientific basis for this.... just estimating L0 based on being higher than initial values of earliest data??? bc with L0 as a paramter, results are funky...
+# 
+# 
+# How best to infer L0 from our data? also given that it starts from a non-0 age...
 
-
-# Using LO based on our specific df
-# and fitting
-# M = rate of division
-# delta = fraction of attrition
-# alpha = rate of death - rate of division
-
-
-# In[239]:
+# In[5]:
 
 
-# function to find LO, as an average of y values corresponding to head x values 
-def find_LO(df):
+# function to find L0, as an average of y values corresponding to first x values 
+def find_L0(df):
     sorted_age_DNAmTL = df.sort_values('age')
     temp = sorted_age_DNAmTL.head(300)
-    LO = temp['DNAmTL'].median()
-    return LO
+    L0 = temp['DNAmTL'].median()
+    L0 = L0 + 0.4
+    return L0
 
 
-#get LO for dataset
-LO = find_LO(age_DNAmTL)
-LO
+# 
+# ## Curve Fitting
+# 
+
+# Should constrain bounds for parameters based on scientific evidence/intuition but just for this sake will let python do its thing
+# 
+# Also weird that L0 if it gets too low, with these parameters, the curve of the function flips
+
+# #### Fit to GS data
+
+# In[6]:
 
 
-# In[240]:
+#get L0 for dataset
+L0 = find_L0(GS_age_DNAmTL)
+L0
 
 
-# optimise other parameters
-pars, testcov = curve_fit(avg_tel, x_values, y_values)
-print(pars)
-print(testcov)
+# In[7]:
 
 
-# In[241]:
+GS_pars, GS_testcov = curve_fit(avg_tel, x_GS, y_GS)
+print(GS_pars)
 
 
-r = len(x_values)
-
-t = np.linspace (0, 100, r)
-
-#this bit is just for playing around with 
-#pars = [0.05917522, 0.06062484, -0.01415034]
-
-plt.plot(t, avg_tel_LO(t, *pars), color = 'red')
-plt.scatter(x_values, y_values, s=10, alpha = 0.5)
-
-plt.ylabel('DNAmTL')
-plt.yscale('linear')
-plt.xlabel('Age')
-
-plt.ylim((5.5, 9.0))
-plt.xlim((10, 100))
-
-plt.show()
+# In[8]:
 
 
-# #### lmfit.Model
-
-# In[242]:
-
-
-# try it again with another function - Model, from lmfit
-from lmfit import Model
-
-
-# In[243]:
-
-
-gmodel = Model(avg_tel_LO)
-print('parameter names: {}'.format(gmodel.param_names))
-print('independent variables: {}'.format(gmodel.independent_vars))
-
-
-# In[244]:
-
-
-#make params
-params = gmodel.make_params(M = 1000, delta = 0.00001, alpha = 0.01)
-params
-
-
-# In[245]:
-
-
-#evaluate 
-x_eval = np.linspace (0, 100, 1000)
-y_eval = gmodel.eval(params, x = x_eval)
-
-
-# In[246]:
-
-
-result = gmodel.fit(y_values, x=x_values, M = 1000, delta = 0.00001, alpha = 0.01) 
-print(result.fit_report())
-
-
-# In[260]:
-
-
-r = len(x_values)
-
-t = np.linspace (0, 100, r)
-
-plt.scatter(x_values, y_values, s=10, alpha = 0.5)
-
-plt.plot(x_values, result.init_fit, 'k--', label='initial fit')
-plt.plot(x_values, result.best_fit, color = 'green', label='gmodel fit')
-plt.plot(t, avg_tel(t, *pars), color = 'red', label = 'curve fit' )
-plt.legend(loc='best')
-
+plt.plot(t, avg_tel(t, *GS_pars), color = 'red')
+plt.scatter(x_GS, y_GS, s=10, alpha = 0.5)
 
 plt.ylabel('DNAmTL')
 plt.yscale('linear')
@@ -202,33 +137,26 @@ plt.xlim((10, 100))
 plt.show()
 
 
-# ### Using Fit LO
+# #### GS fit to LBC data
 
-# In[31]:
-
-
-# here we also try and fit the LO value... which we get weird results with
-def avg_tel_no_LO(t, LO, M, delta, alpha):
-    y = LO - ((2*M*delta)/alpha)*(1-math.e**(-alpha*t))
-    return y
+# In[9]:
 
 
-# In[32]:
+df = pd.read_csv('../Data/sheets/LBC.csv', index_col=0)
+
+LBC_age_DNAmTL = df[["age", "DNAmTL"]]
+x_LBC = LBC_age_DNAmTL.age
+y_LBC = LBC_age_DNAmTL.DNAmTL
 
 
-pars, testcov = curve_fit(avg_tel_no_LO, x_values, y_values)
-print(pars)
+# In[10]:
 
 
-# In[33]:
+#to play with L0
+#L0 = 8
 
-
-r = len(x_values)
-
-t = np.linspace (0, 100, r)
-
-plt.plot(t, avg_tel_no_LO(t, *pars), color = 'red')
-plt.scatter(x_values, y_values, s=10, alpha = 0.5)
+plt.plot(t, avg_tel(t, *GS_pars), color = 'red')
+plt.scatter(x_LBC, y_LBC, s=10, alpha = 0.5)
 
 plt.ylabel('DNAmTL')
 plt.yscale('linear')
@@ -240,8 +168,58 @@ plt.xlim((10, 100))
 plt.show()
 
 
-# In[ ]:
+# #### Doing it the other way round just for continuity
+
+# #### Fit to LBC
+
+# In[11]:
 
 
-# mathematically, idgi rn
+#get L0 for dataset
+L0 = find_L0(LBC_age_DNAmTL)
+
+#inflate LBC a lot more by arbitrary bc dataset begins at such late ages 
+L0 = L0 + 1.2
+
+
+# In[12]:
+
+
+LBC_pars, LBC_testcov = curve_fit(avg_tel, x_LBC, y_LBC)
+print(LBC_pars)
+
+
+# In[13]:
+
+
+plt.plot(t, avg_tel(t, *LBC_pars), color = 'red')
+plt.scatter(x_LBC, y_LBC, s=10, alpha = 0.5)
+
+plt.ylabel('DNAmTL')
+plt.yscale('linear')
+plt.xlabel('Age')
+
+plt.ylim((5.5, 9.0))
+plt.xlim((10, 100))
+
+plt.show()
+
+
+# #### LBC fit to GS data
+
+# In[14]:
+
+
+plt.plot(t, avg_tel(t, *LBC_pars), color = 'red')
+plt.scatter(x_GS, y_GS, s=10, alpha = 0.5)
+
+plt.ylabel('DNAmTL')
+plt.yscale('linear')
+plt.xlabel('Age')
+
+plt.ylim((5.5, 9.0))
+plt.xlim((10, 100))
+
+plt.show()
+
 
