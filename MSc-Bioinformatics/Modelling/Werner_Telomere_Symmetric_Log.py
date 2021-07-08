@@ -5,7 +5,7 @@
 
 # https://elifesciences.org/articles/08687#s3
 
-# In[3]:
+# In[1]:
 
 
 import numpy as np
@@ -16,15 +16,6 @@ from scipy.optimize import curve_fit
 import math
 import pandas as pd
 import os
-
-
-# In[4]:
-
-
-## average telomere length of a cell shortens by a constant factor during each division
-## this underestimates number of senescent cells once telomeres become critically short
-## telomere shortening can only persist if they occur on stem cell population
-## uses telomere lengths in mature cells as proxy for dist. of TL in SCs
 
 
 # Asymmetric division - 1 HSc -> 1 HSc' + 1 progenitor (leaving Sc pool)
@@ -51,15 +42,15 @@ import os
 # 
 # r = proliferation rate of cell
 
-# In[18]:
+# In[2]:
 
 
 # get GS data and extract what we need
 df = pd.read_csv('../Data/sheets/Generation_Scotland.csv', index_col=0)
 
 age_DNAmTL = df[["age", "DNAmTL"]]
-x_values = age_DNAmTL.age
-y_values = age_DNAmTL.DNAmTL
+x_GS = age_DNAmTL.age
+y_GS = age_DNAmTL.DNAmTL
 
 
 # ## Expected Telomere Length
@@ -67,7 +58,7 @@ y_values = age_DNAmTL.DNAmTL
 # #### Asymmetric Division
 # Expected Telomere Length at time T = (c * NO - delta.c * r * t) / NO
 
-# In[17]:
+# In[3]:
 
 
 # we setup the equation
@@ -76,7 +67,7 @@ def exp_asy(t, c, NO, delta, r):
     return y
 
 
-# In[45]:
+# In[4]:
 
 
 #set up parameters (to play with)
@@ -89,7 +80,7 @@ r = 1.2
 
 #plotting scatter with model on top
 
-plt.scatter(x_values, y_values, s = 2)
+plt.scatter(x_GS, y_GS, s = 2)
 plt.plot(t, exp_asy(t, c, NO, delta , r), color = 'red')
 
 
@@ -97,15 +88,15 @@ plt.ylabel('DNAmTL')
 plt.yscale('linear')
 plt.xlabel('Age')
 
-#plt.ylim((5.5, 9.0))
-plt.xlim((10, 100))
+plt.ylim((5.5, 9.0))
+plt.xlim((18, 100))
 
 plt.show()
 
 
 # #### Symmetric division
 
-# In[105]:
+# In[5]:
 
 
 # we setup the equation
@@ -116,7 +107,7 @@ def exp_sym(t, c, delta, p, r, NO):
     return y
 
 
-# In[149]:
+# In[6]:
 
 
 #set up parameters (to play with)
@@ -129,7 +120,7 @@ NO = 100
 
 
 #plotting scatter with model on top
-plt.scatter(x_values, y_values, s = 2)
+plt.scatter(x_GS, y_GS, s = 2)
 plt.plot(t, exp_sym(t, c, delta, p, r, NO,), color = 'red')
 
 
@@ -137,48 +128,30 @@ plt.ylabel('DNAmTL')
 plt.yscale('linear')
 plt.xlabel('Age')
 
-#plt.ylim((5.5, 9.0))
-plt.xlim((10, 100))
+plt.ylim((5.5, 9.0))
+plt.xlim((18, 100))
 
 plt.show()
 
 
 # ## Curve Fitting
 
-# In[ ]:
-
-
-# to find initial CO specific to our data
-
-#function to find LO, as an average of y values corresponding to head x values 
-def find_LO(df):
-    sorted_age_DNAmTL = df.sort_values('age')
-    temp = sorted_age_DNAmTL.head(300)
-    LO = temp['DNAmTL'].median()
-    return LO
-
-
-#get LO for dataset
-LO = find_LO(age_DNAmTL)
-LO
-
-
 # #### Asymmetric Divison
 
-# In[151]:
+# In[7]:
 
 
 # optimise parameters
-pars, testcov = curve_fit(exp_asy, x_values, y_values)
+pars, testcov = curve_fit(exp_asy, x_GS, y_GS)
 print(pars)
 print(testcov)
 
 
-# In[152]:
+# In[8]:
 
 
 #plotting scatter with model on top
-plt.scatter(x_values, y_values, s = 2)
+plt.scatter(x_GS, y_GS, s = 2)
 plt.plot(t, exp_asy(t, *pars), color = 'red')
 
 
@@ -186,28 +159,91 @@ plt.ylabel('DNAmTL')
 plt.yscale('linear')
 plt.xlabel('Age')
 
-#plt.ylim((5.5, 9.0))
-plt.xlim((10, 100))
+plt.ylim((5.5, 9.0))
+plt.xlim((18, 100))
 
 plt.show()
 
 
-# #### Asymmetric Division
+# ---
 
-# In[154]:
+# # Symmetric Division - Fitting Parameters
+
+# Using the _symmetric_ model (Model 2 in the paper, the one w/ fit better), fit parameters using GS
+
+# In[9]:
 
 
 # optimise parameters
-pars, testcov = curve_fit(exp_sym, x_values, y_values)
+GS_pars, GS_testcov = curve_fit(exp_sym, x_GS, y_GS)
+print(GS_pars)
+print(GS_testcov)
+
+
+# In[10]:
+
+
+#plotting scatter with model on top
+plt.scatter(x_GS, y_GS, s = 2)
+plt.plot(t, exp_sym(t, *GS_pars), color = 'red')
+
+
+plt.ylabel('DNAmTL')
+plt.yscale('linear')
+plt.xlabel('Age')
+
+plt.ylim((5.5, 9.0))
+plt.xlim((18, 100))
+
+plt.show()
+
+
+# With the new parameters, fit to GS, we see how the trajectory looks with LBC data
+
+# In[11]:
+
+
+#get LBC data and extract what we need
+df = pd.read_csv('../Data/sheets/LBC.csv', index_col=0)
+
+age_DNAmTL = df[["age", "DNAmTL"]]
+x_LBC = age_DNAmTL.age
+y_LBC = age_DNAmTL.DNAmTL
+
+
+# In[12]:
+
+
+#plotting scatter with model on top
+plt.scatter(x_LBC, y_LBC, s = 2)
+plt.plot(t, exp_sym(t, *GS_pars), color = 'red')
+
+
+plt.ylabel('DNAmTL')
+plt.yscale('linear')
+plt.xlabel('Age')
+
+plt.ylim((5.5, 9.0))
+plt.xlim((18, 100))
+
+plt.show()
+
+
+# To tick all the boxes, we do it the other way i.e. fit our parameters to LBC and see how it maps to GS
+
+# In[13]:
+
+
+pars, testcov = curve_fit(exp_sym, x_LBC, y_LBC)
 print(pars)
 print(testcov)
 
 
-# In[155]:
+# In[14]:
 
 
 #plotting scatter with model on top
-plt.scatter(x_values, y_values, s = 2)
+plt.scatter(x_LBC, y_LBC, s = 2)
 plt.plot(t, exp_sym(t, *pars), color = 'red')
 
 
@@ -215,14 +251,25 @@ plt.ylabel('DNAmTL')
 plt.yscale('linear')
 plt.xlabel('Age')
 
-#plt.ylim((5.5, 9.0))
-plt.xlim((10, 100))
+plt.ylim((5.5, 9.0))
+plt.xlim((18, 100))
 
 plt.show()
 
 
-# In[ ]:
+# In[15]:
 
 
+#plotting scatter with model on top
+plt.scatter(x_GS, y_GS, s = 2)
+plt.plot(t, exp_sym(t, *pars), color = 'red')
 
 
+plt.ylabel('DNAmTL')
+plt.yscale('linear')
+plt.xlabel('Age')
+
+plt.ylim((5.5, 9.0))
+plt.xlim((18, 100))
+
+plt.show()
