@@ -18,29 +18,17 @@ import pandas as pd
 import os
 
 
-# Asymmetric division - 1 HSc -> 1 HSc' + 1 progenitor (leaving Sc pool)
-# 
-#     1 HSc' keeps HSc properties, enters state i + 1, and telomeres shorten by delta.c
-#     
-# Symmetric division  - 1 HSc -> 1 HSc' + 1 HSc'
-# 
-#     Both keep HSc properties, enter state i + 1, telomeres shorten by delta.c
-
 # ###### List of Parameters
 # 
-# 1 + c = accessible telomere states of stem cells
+# c = telomere length
 # 
-# i = a state, with cells of equal average TL
+# delta = rate of telomere attrition
 # 
-# NO = number of cells in state 0
-# 
-# p = probability of symmetric division
-# 
-# 1 - p = probability of asymmetric division
-# 
-# c = initial length
+# p = probabikity of symmetric division 
 # 
 # r = proliferation rate of cell
+#  
+# N0 = number of cells in state 0 
 
 # In[2]:
 
@@ -56,14 +44,13 @@ y_GS = age_DNAmTL.DNAmTL
 # ## Expected Telomere Length
 
 # #### Asymmetric Division
-# Expected Telomere Length at time T = (c * NO - delta.c * r * t) / NO
 
 # In[3]:
 
 
 # we setup the equation
 def exp_asy(t, c, NO, delta, r):
-    y = (c*NO-delta*r*t)/NO
+    y = (c*NO-delta*c*r*t)/NO
     return y
 
 
@@ -72,38 +59,38 @@ def exp_asy(t, c, NO, delta, r):
 
 #set up parameters (to play with)
 
-t = np.linspace (18, 100, 1000)
-c = 7.9
-NO = 10
-delta = 0.1
-r = 1.2
+t = np.linspace (0, 100, 1000)
+
+c = 8
+NO = 2
+delta = 0.06
+r = 0.06
 
 #plotting scatter with model on top
 
 plt.scatter(x_GS, y_GS, s = 2)
 plt.plot(t, exp_asy(t, c, NO, delta , r), color = 'red')
 
-
 plt.ylabel('DNAmTL')
 plt.yscale('linear')
 plt.xlabel('Age')
 
 plt.ylim((5.5, 9.0))
-plt.xlim((18, 100))
+plt.xlim((0, 100))
 
 plt.show()
 
 
 # #### Symmetric division
 
+# Similar to the paper, this fits our data better and also has the flattening out at later ages
+
 # In[5]:
 
 
 # we setup the equation
 def exp_sym(t, c, delta, p, r, NO):
-    
-    y = c - delta * ((1+p)/p)*np.log(r*p/NO*t+1)
-    
+    y = c - delta * c * ((1+p)/p)*np.log(r*p/NO*t+1)
     return y
 
 
@@ -111,25 +98,22 @@ def exp_sym(t, c, delta, p, r, NO):
 
 
 #set up parameters (to play with)
-t = np.linspace (18, 100, 1000)
-c = 8
-delta = 0.06
-p = 0.08
+c = 8.5
+delta = 0.05
+p = 0.02
 r = 30
-NO = 100
-
+NO = 500
 
 #plotting scatter with model on top
 plt.scatter(x_GS, y_GS, s = 2)
 plt.plot(t, exp_sym(t, c, delta, p, r, NO,), color = 'red')
-
 
 plt.ylabel('DNAmTL')
 plt.yscale('linear')
 plt.xlabel('Age')
 
 plt.ylim((5.5, 9.0))
-plt.xlim((18, 100))
+plt.xlim((0, 100))
 
 plt.show()
 
@@ -137,6 +121,8 @@ plt.show()
 # ## Curve Fitting
 
 # #### Asymmetric Divison
+# 
+# Just done for comparisons sake
 
 # In[7]:
 
@@ -160,7 +146,7 @@ plt.yscale('linear')
 plt.xlabel('Age')
 
 plt.ylim((5.5, 9.0))
-plt.xlim((18, 100))
+plt.xlim((0, 100))
 
 plt.show()
 
@@ -170,14 +156,32 @@ plt.show()
 # # Symmetric Division - Fitting Parameters
 
 # Using the _symmetric_ model (Model 2 in the paper, the one w/ fit better), fit parameters using GS
+# 
+# Interesting the curve is concave, slow down at later ages, whcih is opposite to human survivorship curve
+
+# #### Fit to GS Data
+
+# - c = telomere length
+# 
+# - delta = rate of telomere attrition
+# 
+# - p = probabikity of symmetric division 
+# 
+# - r = proliferation rate of cell
+#  
+# - N0 = number of cells in state 0 
 
 # In[9]:
 
 
-# optimise parameters
-GS_pars, GS_testcov = curve_fit(exp_sym, x_GS, y_GS)
+# optimise parameters, and give realistic bounds
+
+p_init = [8, 0.05, 0.01, 30, 100]
+
+bounds=[[7,0, 0, 0, 0],[10, 1, 1, 1000, 1000]]
+
+GS_pars, GS_testcov = curve_fit(exp_sym, x_GS, y_GS, p0 = p_init, bounds = bounds)
 print(GS_pars)
-print(GS_testcov)
 
 
 # In[10]:
@@ -193,12 +197,14 @@ plt.yscale('linear')
 plt.xlabel('Age')
 
 plt.ylim((5.5, 9.0))
-plt.xlim((18, 100))
+plt.xlim((0, 100))
 
 plt.show()
 
 
-# With the new parameters, fit to GS, we see how the trajectory looks with LBC data
+# #### GS fit to LBC data
+
+# looks quite nice! RE batch effects, can just shift the values down a bit but not sure how scientifically valid this is
 
 # In[11]:
 
@@ -218,23 +224,35 @@ y_LBC = age_DNAmTL.DNAmTL
 plt.scatter(x_LBC, y_LBC, s = 2)
 plt.plot(t, exp_sym(t, *GS_pars), color = 'red')
 
+#to play with
+#z = (exp_sym(t, *GS_pars))-0.3
+#plt.plot(t, z, color = 'green')
+
 
 plt.ylabel('DNAmTL')
 plt.yscale('linear')
 plt.xlabel('Age')
 
 plt.ylim((5.5, 9.0))
-plt.xlim((18, 100))
+plt.xlim((0, 100))
 
 plt.show()
 
+
+# ### Fit to LBC
 
 # To tick all the boxes, we do it the other way i.e. fit our parameters to LBC and see how it maps to GS
 
 # In[13]:
 
 
-pars, testcov = curve_fit(exp_sym, x_LBC, y_LBC)
+# optimise parameters, and give realistic bounds
+
+p_init = [8, 0.05, 0.01, 30, 100]
+
+bounds=[[7,0, 0, 0, 0],[10, 1, 1, 1000, 1000]]
+
+pars, testcov = curve_fit(exp_sym, x_LBC, y_LBC, bounds = bounds)
 print(pars)
 print(testcov)
 
@@ -252,10 +270,12 @@ plt.yscale('linear')
 plt.xlabel('Age')
 
 plt.ylim((5.5, 9.0))
-plt.xlim((18, 100))
+plt.xlim((0, 100))
 
 plt.show()
 
+
+# #### LBC fit to GS
 
 # In[15]:
 
@@ -270,6 +290,10 @@ plt.yscale('linear')
 plt.xlabel('Age')
 
 plt.ylim((5.5, 9.0))
-plt.xlim((18, 100))
+plt.xlim((0, 100))
 
 plt.show()
+
+
+# In[ ]:
+
