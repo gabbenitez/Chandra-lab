@@ -1,0 +1,252 @@
+####################################################
+
+############## Weird Trajectories LBC ##############
+
+####################################################
+
+library("tidyr")
+library("stringr")
+library("dplyr")
+
+
+setwd("C:/Users/gabri/Desktop/Dissertation/Data/Sheets")
+
+##########################################
+###Individuals with DNAmTL rise, slope > 0
+
+#LBC 21
+rise_W1 <- subset(LBC_waves_21_W1_2, slope > 0)
+rise_W1 <- rise_W1 %>%
+    filter(!str_detect(Wave, 'Wave_2'))
+
+rise_W2 <- subset(LBC_waves_21_W2_3, slope > 0)
+rise_W2 <- rise_W2 %>%
+  filter(!str_detect(Wave, 'Wave_3'))
+
+LBC_21_up <- rbind(rise_W1, rise_W2)
+
+
+#LBC 36
+rise_W1 <- subset(LBC_waves_36_W1_2, slope > 0)
+rise_W1 <- rise_W1 %>%
+  filter(!str_detect(Wave, 'Wave_2'))
+
+rise_W2 <- subset(LBC_waves_36_W2_3, slope > 0)
+rise_W2 <- rise_W2 %>%
+  filter(!str_detect(Wave, 'Wave_3'))
+
+rise_W3 <- subset(LBC_waves_36_W3_4, slope > 0)
+rise_W3 <- rise_W3 %>%
+  filter(!str_detect(Wave, 'Wave_4'))
+
+LBC_36_up <- rbind(rise_W1, rise_W2, rise_W3)
+
+#save as csv
+write.csv(LBC_21_up, 'LBC21_DNAmTL_upslope.csv')
+write.csv(LBC_36_up, 'LBC36_DNAmTL_upslope.csv')
+
+
+##############################################
+### Sharp declines, -0.3 is an arbitrary value
+
+#LBC 21
+sharp_W1 <- subset(LBC_waves_21_W1_2, slope < -0.3)
+sharp_W1 <- sharp_W1 %>%
+  filter(!str_detect(Wave, 'Wave_2'))
+
+sharp_W2 <- subset(LBC_waves_21_W2_3, slope < -0.3)
+sharp_W2 <- sharp_W2 %>%
+  filter(!str_detect(Wave, 'Wave_3'))
+
+LBC_21_sharp <- rbind(sharp_W1, sharp_W2)
+
+#LBC 36
+sharp_W1 <- subset(LBC_waves_36_W1_2, slope < -0.3)
+sharp_W1 <- sharp_W1 %>%
+  filter(!str_detect(Wave, 'Wave_2'))
+
+sharp_W2 <- subset(LBC_waves_36_W2_3, slope < -0.3)
+sharp_W2 <- sharp_W2 %>%
+  filter(!str_detect(Wave, 'Wave_3'))
+
+sharp_W3 <- subset(LBC_waves_36_W3_4, slope < -0.3)
+sharp_W3 <- sharp_W3 %>%
+  filter(!str_detect(Wave, 'Wave_4'))
+
+LBC_36_sharp <- rbind(sharp_W1, sharp_W2, sharp_W3)
+
+
+##################################################
+### Average DNAmTL of survivors (protective CHIP mutations)
+
+
+# get average DNAmTL across waves for survivors til last wave 
+# automatically NAs for rows with column missing i.e. non-survivor
+# and you can stratify individual ID's by survivors with highest/lowest DNAmTL across waves
+
+#LBC 21
+
+LBC_waves_21$average <- rowMeans(LBC_waves_21[, c(4:6)])
+LBC_21_avg_survivors <- LBC_waves_21[order(LBC_waves_21$average),]
+LBC_21_avg_survivors <- LBC_21_avg_survivors %>% drop_na(average)
+
+#LBC 36
+
+LBC_waves_36$average <- rowMeans(LBC_waves_36[, c(4:7)])
+LBC_36_avg_survivors <- LBC_waves_36[order(LBC_waves_36$average),]
+LBC_36_avg_survivors <- LBC_36_avg_survivors %>% drop_na(average)
+
+#save as csv
+write.csv(LBC_21_avg_survivors, 'LBC21_DNAmTL_avg_survivors.csv')
+write.csv(LBC_36_avg_survivors, 'LBC36_DNAmTL_avg_survivors.csv')
+
+
+
+write.csv(LBC, 'LBC.csv')
+write.csv(LBC_21, 'LBC_21.csv')
+write.csv(LBC_36, 'LBC_36.csv')
+
+
+
+###### Total delta
+
+
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/Delta")
+
+colnames(LBC_waves)[4:7]<- c("Wave_1", "Wave_2","Wave_3", "Wave_4")
+
+
+#get the starting values
+#paste all values then remove NA
+LBC_waves$startval <- paste(LBC_waves$Wave_4, LBC_waves$Wave_3, LBC_waves$Wave_2, LBC_waves$Wave_1)
+LBC_waves$startval <- gsub("^NA(?:\\s+NA)*\\b\\s*|\\s*\\bNA(?:\\s+NA)*$", "", LBC_waves$startval)
+
+
+LBC_waves$startval <- str_sub(LBC_waves$startval, start = -16)
+
+#get the starting values
+#paste all values then remove NA
+LBC_waves$startval <- paste(LBC_waves$Wave_4, LBC_waves$Wave_3, LBC_waves$Wave_2, LBC_waves$Wave_1)
+LBC_waves$startval <- gsub("^NA(?:\\s+NA)*\\b\\s*|\\s*\\bNA(?:\\s+NA)*$", "", LBC_waves$startval)
+
+#extract the last one i.e. the most relevant one
+LBC_waves$startval <- str_sub(LBC_waves$startval, start = -16)
+
+#get the ending values by doing the same with order of paste reversed
+LBC_waves$endval <- paste(LBC_waves$Wave_1, LBC_waves$Wave_2, LBC_waves$Wave_3, LBC_waves$Wave_4)
+LBC_waves$endval <- gsub("^NA(?:\\s+NA)*\\b\\s*|\\s*\\bNA(?:\\s+NA)*$", "", LBC_waves$endval)
+
+#extract the last one i.e. the most relevant one
+LBC_waves$endval <- str_sub(LBC_waves$endval, start = -16)
+
+LBC_waves$endval<- as.numeric(LBC_waves$endval)
+LBC_waves$startval<- as.numeric(LBC_waves$startval)
+
+
+#calculate total delta
+LBC_waves$totaldelta <- (LBC_waves$endval) - (LBC_waves$startval)
+
+
+#then separate by LBC_21 and 36
+
+LBC_waves_21 <- LBC_waves[str_detect(LBC_waves$cohort, "LBC21"),]
+LBC_waves_36 <- LBC_waves[str_detect(LBC_waves$cohort, "LBC36"),]
+
+#### scatter plot
+
+data_prefix <- total_delta_LBC_
+i <- LBC_waves
+
+png(paste("LBC_36total_change_start_to_end.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
+ggplot(LBC_waves_36, aes(x=startval, y=totaldelta)) +
+  geom_point(shape=16, alpha = 0.4) +
+  geom_smooth(method=lm, se=TRUE) +
+  ggtitle ("Change in DNAmTL vs Initial Length") +
+  xlab ("Initial Length DNAmTL (kB)") +
+  ylab ("Change (kB)") +
+  ylim(-1.25, 1.25) +
+  xlim (5.5, 7.5) +
+  labs (caption = "Data: Lothian Birth Cohorts") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+#total change with each wave?
+LBC_waves_21$Wave_4 <- NA
+dim(LBC_waves_21)
+dim(LBC_waves_36)
+
+test <- rbind(LBC_waves_21, LBC_waves_36)
+
+LBC_waves$survivor <- test$survivor
+
+
+
+
+
+#plot each wave with change for each dataset
+
+
+#get the starting values
+#paste all values then remove NA
+#replace the dataset as necessary
+
+LBC_waves_36$startval <- paste(LBC_waves_36$Wave_4, LBC_waves_36$Wave_3, LBC_waves_36$Wave_2, LBC_waves_36$Wave_1)
+LBC_waves_36$startval <- gsub("^NA(?:\\s+NA)*\\b\\s*|\\s*\\bNA(?:\\s+NA)*$", "", LBC_waves_36$startval)
+
+
+LBC_waves_36$startval <- str_sub(LBC_waves_36$startval, start = -16)
+
+#get the starting values
+#paste all values then remove NA
+LBC_waves_36$startval <- paste(LBC_waves_36$Wave_4, LBC_waves_36$Wave_3, LBC_waves_36$Wave_2, LBC_waves_36$Wave_1)
+LBC_waves_36$startval <- gsub("^NA(?:\\s+NA)*\\b\\s*|\\s*\\bNA(?:\\s+NA)*$", "", LBC_waves_36$startval)
+
+#extract the last one i.e. the most relevant one
+LBC_waves_36$startval <- str_sub(LBC_waves_36$startval, start = -16)
+
+#get the ending values by doing the same with order of paste reversed
+LBC_waves_36$endval <- paste(LBC_waves_36$Wave_1, LBC_waves_36$Wave_2, LBC_waves_36$Wave_3, LBC_waves_36$Wave_4)
+LBC_waves_36$endval <- gsub("^NA(?:\\s+NA)*\\b\\s*|\\s*\\bNA(?:\\s+NA)*$", "", LBC_waves_36$endval)
+
+#extract the last one i.e. the most relevant one
+LBC_waves_36$endval <- str_sub(LBC_waves_36$endval, start = -16)
+
+LBC_waves_36$endval<- as.numeric(LBC_waves_36$endval)
+LBC_waves_36$startval<- as.numeric(LBC_waves_36$startval)
+
+
+#calculate total delta
+LBC_waves_36$totaldelta <- (LBC_waves_36$endval) - (LBC_waves_36$startval)
+
+
+#is it how much it declined, or the final length which matters????
+#are the W4 experiencing more of a decline because they had longer original lengths?
+
+LBC_waves_21 <- LBC_waves_21[-c(7)]
+LBC_waves_21<- LBC_waves_21 [-c(1513), ]
+
+LBC_waves_21$survivor[469] <- 3
+
+a <- unique(LBC_waves_21$survivor)
+a <- length(a)
+pal <- wes_palette("Darjeeling1", a, type = "continuous")
+
+png(paste("LBC_21_delta_by_wave.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
+ggplot(LBC_waves_21, aes(x=survivor, y=totaldelta)) +
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.6, size = 0.2)+
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  stat_compare_means(method = "anova") +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Change in DNAmTL vs Survivor Wave") +
+  xlab ("Survivor Wave") +
+  ylab ("Change (kB)") +
+  ylim(-1.25, 1.25) +
+  labs (caption = "Data: Lothian Birth Cohorts") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
