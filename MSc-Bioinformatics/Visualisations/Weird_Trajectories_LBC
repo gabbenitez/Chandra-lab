@@ -108,21 +108,13 @@ write.csv(LBC_36, 'LBC_36.csv')
 
 
 
+
+
+
 ###### Total delta
 
 
 setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/Delta")
-
-colnames(LBC_waves)[4:7]<- c("Wave_1", "Wave_2","Wave_3", "Wave_4")
-
-
-#get the starting values
-#paste all values then remove NA
-LBC_waves$startval <- paste(LBC_waves$Wave_4, LBC_waves$Wave_3, LBC_waves$Wave_2, LBC_waves$Wave_1)
-LBC_waves$startval <- gsub("^NA(?:\\s+NA)*\\b\\s*|\\s*\\bNA(?:\\s+NA)*$", "", LBC_waves$startval)
-
-
-LBC_waves$startval <- str_sub(LBC_waves$startval, start = -16)
 
 #get the starting values
 #paste all values then remove NA
@@ -139,9 +131,16 @@ LBC_waves$endval <- gsub("^NA(?:\\s+NA)*\\b\\s*|\\s*\\bNA(?:\\s+NA)*$", "", LBC_
 #extract the last one i.e. the most relevant one
 LBC_waves$endval <- str_sub(LBC_waves$endval, start = -16)
 
-LBC_waves$endval<- as.numeric(LBC_waves$endval)
-LBC_waves$startval<- as.numeric(LBC_waves$startval)
 
+
+#822 and 877
+
+#as.numeric(LBC_waves[[9]])
+
+################################## HOW TO REMOVE NAS INTRODUCED BY COERCION?????
+
+LBC_waves$startval<- as.numeric(LBC_waves$startval)
+LBC_waves$endval<- as.numeric(LBC_waves$endval)
 
 #calculate total delta
 LBC_waves$totaldelta <- (LBC_waves$endval) - (LBC_waves$startval)
@@ -152,13 +151,16 @@ LBC_waves$totaldelta <- (LBC_waves$endval) - (LBC_waves$startval)
 LBC_waves_21 <- LBC_waves[str_detect(LBC_waves$cohort, "LBC21"),]
 LBC_waves_36 <- LBC_waves[str_detect(LBC_waves$cohort, "LBC36"),]
 
+
+
+
+
+
 #### scatter plot
 
-data_prefix <- total_delta_LBC_
-i <- LBC_waves
 
-png(paste("LBC_36total_change_start_to_end.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
-ggplot(LBC_waves_36, aes(x=startval, y=totaldelta)) +
+png(paste("LBC_all_total_change_start_to_end.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
+ggplot(LBC_waves, aes(x=startval, y=totaldelta)) +
   geom_point(shape=16, alpha = 0.4) +
   geom_smooth(method=lm, se=TRUE) +
   ggtitle ("Change in DNAmTL vs Initial Length") +
@@ -174,79 +176,86 @@ ggplot(LBC_waves_36, aes(x=startval, y=totaldelta)) +
 dev.off()
 
 #total change with each wave?
-LBC_waves_21$Wave_4 <- NA
-dim(LBC_waves_21)
-dim(LBC_waves_36)
-
-test <- rbind(LBC_waves_21, LBC_waves_36)
-
-LBC_waves$survivor <- test$survivor
-
-
-
-
 
 #plot each wave with change for each dataset
 
 
-#get the starting values
-#paste all values then remove NA
-#replace the dataset as necessary
-
-LBC_waves_36$startval <- paste(LBC_waves_36$Wave_4, LBC_waves_36$Wave_3, LBC_waves_36$Wave_2, LBC_waves_36$Wave_1)
-LBC_waves_36$startval <- gsub("^NA(?:\\s+NA)*\\b\\s*|\\s*\\bNA(?:\\s+NA)*$", "", LBC_waves_36$startval)
-
-
-LBC_waves_36$startval <- str_sub(LBC_waves_36$startval, start = -16)
-
-#get the starting values
-#paste all values then remove NA
-LBC_waves_36$startval <- paste(LBC_waves_36$Wave_4, LBC_waves_36$Wave_3, LBC_waves_36$Wave_2, LBC_waves_36$Wave_1)
-LBC_waves_36$startval <- gsub("^NA(?:\\s+NA)*\\b\\s*|\\s*\\bNA(?:\\s+NA)*$", "", LBC_waves_36$startval)
-
-#extract the last one i.e. the most relevant one
-LBC_waves_36$startval <- str_sub(LBC_waves_36$startval, start = -16)
-
-#get the ending values by doing the same with order of paste reversed
-LBC_waves_36$endval <- paste(LBC_waves_36$Wave_1, LBC_waves_36$Wave_2, LBC_waves_36$Wave_3, LBC_waves_36$Wave_4)
-LBC_waves_36$endval <- gsub("^NA(?:\\s+NA)*\\b\\s*|\\s*\\bNA(?:\\s+NA)*$", "", LBC_waves_36$endval)
-
-#extract the last one i.e. the most relevant one
-LBC_waves_36$endval <- str_sub(LBC_waves_36$endval, start = -16)
-
-LBC_waves_36$endval<- as.numeric(LBC_waves_36$endval)
-LBC_waves_36$startval<- as.numeric(LBC_waves_36$startval)
-
-
-#calculate total delta
-LBC_waves_36$totaldelta <- (LBC_waves_36$endval) - (LBC_waves_36$startval)
 
 
 #is it how much it declined, or the final length which matters????
 #are the W4 experiencing more of a decline because they had longer original lengths?
-
-LBC_waves_21 <- LBC_waves_21[-c(7)]
-LBC_waves_21<- LBC_waves_21 [-c(1513), ]
-
-LBC_waves_21$survivor[469] <- 3
+# is there a difference in rates between wave survivors?
 
 a <- unique(LBC_waves_21$survivor)
 a <- length(a)
 pal <- wes_palette("Darjeeling1", a, type = "continuous")
 
-png(paste("LBC_21_delta_by_wave.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
-ggplot(LBC_waves_21, aes(x=survivor, y=totaldelta)) +
+
+png(paste("LBC_36_delta_by_survivor_group.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
+ggplot(LBC_waves_36, aes(x=survivor, y=totaldelta)) +
   geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.6, size = 0.2)+
   geom_boxplot(width = 0.8, color = "black", alpha = 1) +
   stat_compare_means(method = "anova") +
   scale_fill_manual(values = pal)+
-  ggtitle ("Change in DNAmTL vs Survivor Wave") +
+  ggtitle ("Overall Delta in DNAmTL for Each Survivor Group") +
   xlab ("Survivor Wave") +
   ylab ("Change (kB)") +
   ylim(-1.25, 1.25) +
-  labs (caption = "Data: Lothian Birth Cohorts") +
+  labs (caption = "Data: Lothian Birth Cohorts 1936") +
   theme(
     plot.title = element_text(hjust = 0.5, face = "bold"),
     axis.line = element_line (size = 0.5)
   )
 dev.off()
+
+
+
+
+
+#######################################
+
+# For W4 survivors
+# at same age and across same time frame
+# do indivs with same starting DNAmTL experience same rate of attrition
+
+
+#LBC waves 36
+# subset by W4 survivors
+LBC_36_W4 <- LBC_waves[str_detect(LBC_waves$survivor, "4"),]
+LBC_36_W4
+  
+#get initial DNAmTL bins
+#add bins for tl lengths
+LBC_36_W4$initial_DNAmTL[LBC_36_W4$startval > 6 & LBC_36_W4$startval < 6.5] <- "6.00<6.50"
+LBC_36_W4$initial_DNAmTL[LBC_36_W4$startval > 6.5 & LBC_36_W4$startval < 7] <- "6.50<7.00"
+LBC_36_W4$initial_DNAmTL[LBC_36_W4$startval > 7 & LBC_36_W4$startval < 7.5] <- "7.00<7.50"
+
+
+
+#plot rate of decline for each initial DNAmTL length
+
+#remove all NA rows
+LBC_36_W4 <- LBC_36_W4 %>% drop_na(totaldelta)
+
+a <- unique(LBC_36_W4$initial_DNAmTL)
+a <- length(a)
+pal <- wes_palette("Darjeeling1", a, type = "continuous")
+pal
+
+png(paste("LBC_36_delta_by_initial_lengths.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
+ggplot(LBC_36_W4, aes(x=initial_DNAmTL, y=totaldelta)) +
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.6, size = 0.2)+
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  stat_compare_means(method = "anova") +
+  scale_fill_manual(values = pal)+
+  ggtitle ("Overall Delta for Initial DNAmTL Bins") +
+  xlab ("Survivor Wave") +
+  ylab ("Change (kB)") +
+  ylim(-1.25, 1.25) +
+  labs (caption = "Data: Lothian Birth Cohorts 1936") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
