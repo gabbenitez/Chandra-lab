@@ -110,7 +110,7 @@ write.csv(LBC_36, 'LBC_36.csv')
 
 
 
-
+################################################################
 ###### Total delta
 
 
@@ -258,4 +258,116 @@ ggplot(LBC_36_W4, aes(x=initial_DNAmTL, y=totaldelta)) +
     axis.line = element_line (size = 0.5)
   )
 dev.off()
+
+
+
+
+
+##############################
+#### Delta by survivors -> is there a stat. sig. in length vs change in same amount of time 
+# stratify survivors by their final wave
+# take difference between previous and current DNAmTL 
+
+LBC_waves$W1_W2 <- (LBC_waves$Wave_2)-(LBC_waves$Wave_1)
+LBC_waves$W2_W3 <- (LBC_waves$Wave_3)-(LBC_waves$Wave_2)
+LBC_waves$W3_W4 <- (LBC_waves$Wave_4)-(LBC_waves$Wave_3)
+
+
+#get DNAmTL bins for each waves
+# copy paste colnames as necessary - loops in R frustrate me... so did it manually
+
+LBC_waves$W1_bin[LBC_waves$Wave_1 > 6 & LBC_waves$Wave_1 < 6.5] <- "6.00<6.50"
+LBC_waves$W1_bin[LBC_waves$Wave_1 > 6.5 & LBC_waves$Wave_1 < 7] <- "6.50<7.00"
+LBC_waves$W1_bin[LBC_waves$Wave_1 > 7 & LBC_waves$Wave_1 < 7.5] <- "7.00<7.50"
+
+LBC_waves$W2_bin[LBC_waves$Wave_2 > 6 & LBC_waves$Wave_2 < 6.5] <- "6.00<6.50"
+LBC_waves$W2_bin[LBC_waves$Wave_2 > 6.5 & LBC_waves$Wave_2 < 7] <- "6.50<7.00"
+LBC_waves$W2_bin[LBC_waves$Wave_2 > 7 & LBC_waves$Wave_2 < 7.5] <- "7.00<7.50"
+
+LBC_waves$W3_bin[LBC_waves$Wave_3 > 6 & LBC_waves$Wave_3 < 6.5] <- "6.00<6.50"
+LBC_waves$W3_bin[LBC_waves$Wave_3 > 6.5 & LBC_waves$Wave_3 < 7] <- "6.50<7.00"
+LBC_waves$W3_bin[LBC_waves$Wave_3 > 7 & LBC_waves$Wave_3 < 7.5] <- "7.00<7.50"
+
+
+
+#here
+#write.csv(LBC_waves, "LBC_waves.csv")
+
+
+#######################################################################################
+#####CAN SKIP EVERYTHING HERE AND JUST OPEN THIS UPADTED VERSION WRITTEN
+
+setwd("C:/Users/gabri/Desktop/Dissertation/Data/sheets")
+
+#LBC_waves <- read.csv("LBC_waves.csv")
+
+
+#gather
+LBC_waves_diff <- gather(LBC_waves, "Waves", "Difference", 12:14)
+
+
+#conditional, dependent on Wave difference id, select appropriate starting values, and make bins
+
+if (LBC_waves_diff$Waves == "W1_W2"){
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_1 < 6] <- "<6.00"
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_1 > 6 & LBC_waves_diff$Wave_1 < 6.5] <- "6.00<6.50"
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_1 > 6.5 & LBC_waves_diff$Wave_1 < 7] <- "6.50<7.00"
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_1 > 7 & LBC_waves_diff$Wave_1 < 7.5] <- "7.00<7.50"
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_1 > 7.5 ] <- "7.5<"
+} 
+
+if (LBC_waves_diff$Waves == "W2_W3"){
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_2 < 6] <- "<6.00"
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_2 > 6 & LBC_waves_diff$Wave_2 < 6.5] <- "6.00<6.50"
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_2 > 6.5 & LBC_waves_diff$Wave_2 < 7] <- "6.50<7.00"
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_2 > 7 & LBC_waves_diff$Wave_2 < 7.5] <- "7.00<7.50"
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_2 > 7.5] <- "7.5<"
+}
+
+if (LBC_waves_diff$Waves == "W3_W4"){
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_3 < 6] <- "<6.00"
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_3 > 6 & LBC_waves_diff$Wave_3 < 6.5] <- "6.00<6.50"
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_3 > 6.5 & LBC_waves_diff$Wave_3 < 7] <- "6.50<7.00"
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_3 > 7 & LBC_waves_diff$Wave_3 < 7.5] <- "7.00<7.50"
+  LBC_waves_diff$start_bin[LBC_waves_diff$Wave_3 > 7.5] <- "7.5<"
+}
+
+#remove relevant NA rows
+#LBC_waves_diff <- LBC_waves_diff %>% drop_na(start_bin)
+LBC_waves_diff <- LBC_waves_diff %>% drop_na(Difference)
+
+#write.csv(LBC_waves_diff, "LBC_waves_diff.csv")
+
+#extract LBC cohorts (1936, 1921)
+LBC_36_waves_diff <- LBC_waves_diff[str_detect(LBC_waves_diff$cohort, "LBC36"),]
+LBC_21_waves_diff <- LBC_waves_diff[str_detect(LBC_waves_diff$cohort, "LBC21"),]
+
+
+
+#plot here
+
+i <- LBC_36_waves_diff
+data_prefix <- "LBC_1936"
+
+a <- unique(i$start_bin)
+a <- length(a)
+pal <- wes_palette("Darjeeling1", a, type = "continuous")
+pal
+
+png(paste(data_prefix, "_BoxPlot_and_Jitter_Change_in_DNAmTL_Between_Waves_and_Bins.png", sep = ""), width = 10, height = 8, units = 'in', res = 300)
+ggplot(i, aes(x=Waves, y=Difference, fill=start_bin)) +
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  stat_compare_means(method = "anova") +
+  scale_fill_manual(values = pal)+
+  ggtitle ("LBC 1936: Change in DNAmTL Between Waves") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim(-1.25, 1.25) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )  
+dev.off()
+
 
