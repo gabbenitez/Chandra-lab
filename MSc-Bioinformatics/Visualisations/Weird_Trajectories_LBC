@@ -370,4 +370,41 @@ ggplot(i, aes(x=Waves, y=Difference, fill=start_bin)) +
   )  
 dev.off()
 
+####################
+#extract survivors of final waves in decreasing
+#plot initial bins vs overall decline
+
+#subset survivors by columns
+
+LBC_21_2 <- LBC_21_waves_diff[(LBC_21_waves_diff$survivor=="2"),]
+LBC_21_3 <- LBC_21_waves_diff[(LBC_21_waves_diff$survivor=="3"),]
+
+LBC_36_2 <- LBC_36_waves_diff[(LBC_36_waves_diff$survivor=="2"),]
+LBC_36_3 <- LBC_36_waves_diff[(LBC_36_waves_diff$survivor=="3"),]
+LBC_36_4 <- LBC_36_waves_diff[(LBC_36_waves_diff$survivor=="4"),]
+
+
+i <- LBC_36_4
+data_prefix <- "LBC_36_W3_W4"
+
+a <- unique(i$start_bin)
+a <- length(a)
+pal <- wes_palette("Darjeeling1", a, type = "continuous")
+
+
+png(paste(data_prefix, "_BoxPlot_and_Jitter_Overall_Change.png", sep = ""), width = 10, height = 8, units = 'in', res = 300)
+ggplot(i, aes(x=start_bin, y=Difference, fill=start_bin)) +
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  stat_compare_means(method = "anova") +
+  scale_fill_manual(values = pal)+
+  ggtitle ("LBC 1936: Overall Change in DNAmTL Between Waves 3-4") +
+  xlab ("Wave") +
+  ylab ("DNAmTL") +
+  ylim(-1.25, 1.25) +
+  labs (caption = "Data: Lothian Birth Cohort 1936") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )  
+dev.off()
 
