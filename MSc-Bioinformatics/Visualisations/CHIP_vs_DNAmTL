@@ -56,7 +56,6 @@ LBC_vaf$gene_id <- word(LBC_vaf$mutation_id,1,sep = "\\ ")
 
 #have global average... or something
 #get average DNAmTL for each age bin
-
 mean_70<- mean(LBC_lo$DNAmTL[LBC_lo$Age_Bin == "<70" ])
 mean_73<- mean(LBC_lo$DNAmTL[LBC_lo$Age_Bin == "70<73" ])
 mean_76<- mean(LBC_lo$DNAmTL[LBC_lo$Age_Bin == "73<76" ])
@@ -64,16 +63,113 @@ mean_85<-mean(LBC_lo$DNAmTL[LBC_lo$Age_Bin == "76<85" ])
 mean_all <- mean(LBC_lo$DNAmTL)
 
 
-ggplot (LBC_vaf, aes(x=gene_id, y = DNAmTL)) +
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/CHIP")
+
+
+#just all for vis
+
+a <- unique(LBC_vaf$gene_id)
+a <- length(a)
+pal <- wes_palette("Darjeeling1", a, type = "continuous")
+
+png(paste("all_genes.png", sep = ""), width = 12, height = 8, units = 'in', res = 300)
+ggplot (LBC_vaf, aes(x=gene_id, y = DNAmTL, fill = gene_id)) +
   geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.6, size = 0.2)+
   geom_boxplot(width = 0.8, color = "black", alpha = 1) +
-  #scale_fill_manual(values = pal)+
+  #stat_compare_means(method = "anova") +
+  scale_fill_manual(values = pal)+
   ggtitle ("DNAmTL per Gene Mutation") +
   xlab ("Gene") +
   ylab ("DNAmTL") +
-  ylim(5.5, 9) +
-  labs (caption = "Data: Generation Scotland") +
+  ylim(5.5, 8.5) +
+  labs (caption = "Data: Lothian Birth Cohort") +
   theme(
     plot.title = element_text(hjust = 0.5, face = "bold"),
     axis.line = element_line (size = 0.5)
   )
+dev.off()
+
+
+
+
+################### mutations
+
+#all mutations vs all
+mutants <- LBC_vaf$Sample_Name
+mutants <- as.list(strsplit(mutants, " "))
+
+#mutants are the list of genes with mutations 
+mutants
+
+df <- LBC_lo
+
+df$mutant <- as.numeric(df$Sample_Name %in% mutants)
+
+df$mutant[df$mutant == 1] <- "mutant"
+df$mutant[df$mutant == 0] <- "WT"
+
+a <- unique(df$mutant)
+a <- length(a)
+pal <- wes_palette("Darjeeling1", a, type = "continuous")
+
+png(paste("all_mutations.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
+ggplot (df, aes(x=mutant, y = DNAmTL, fill = mutant)) +
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  stat_compare_means(method = "t.test") +
+  scale_fill_manual(values = pal)+
+  ggtitle ("DNAmTL for CHIP Mutations") +
+  xlab ("") +
+  ylab ("DNAmTL") +
+  ylim(5.5, 8.5) +
+  labs (caption = "Data: Lothian Birth COhort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
+
+#get the list of mutations
+
+test <- LBC_vaf$gene_id
+test <- as.list(strsplit(test, " "))
+
+#fix this loop
+
+for (i in test)
+  
+######################## manual entry for i  
+    
+  {i <- "ZRSR2"
+  
+  gene_name <- i
+  
+  gene <- gene_name
+  
+  mutants <- LBC_vaf$Sample_Name[LBC_vaf$gene_id == gene]
+  mutants <- as.list(strsplit(mutants, " "))
+  
+  df$mutant <- as.numeric(df$Sample_Name %in% mutants)
+  
+  df$mutant[df$mutant == 1] <- "mutant"
+  df$mutant[df$mutant == 0] <- "WT"
+  
+  data_prefix <- gene
+}
+  png(paste(data_prefix, "_mutations.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
+  ggplot (df, aes(x=mutant, y = DNAmTL, fill = mutant)) +
+    geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+    stat_compare_means(method = "t.test") +
+    scale_fill_manual(values = pal)+
+    ggtitle (data_prefix) +
+    xlab ("") +
+    ylab ("DNAmTL") +
+    ylim(5.5, 8.5) +
+    labs (caption = "Data: Lothian Birth COhort") +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      axis.line = element_line (size = 0.5)
+    )
+  dev.off()
+
