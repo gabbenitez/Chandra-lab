@@ -1,0 +1,272 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# # DNAmTL vs LTL
+
+# In[70]:
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+get_ipython().run_line_magic('matplotlib', 'inline')
+import scipy
+from scipy.optimize import curve_fit
+import math
+import pandas as pd
+import os
+
+
+# In[71]:
+
+
+#get LBC data and extract what we need
+df = pd.read_csv('../Data/sheets/LBC.csv', index_col=0)
+
+age_DNAmTL = df[["age", "DNAmTL"]]
+x_LBC = age_DNAmTL.age
+y_DNAmTL = age_DNAmTL.DNAmTL
+
+# get GS data and extract what we need
+df = pd.read_csv('../Data/sheets/Generation_Scotland.csv', index_col=0)
+
+age_DNAmTL = df[["age", "DNAmTL"]]
+x_GS = age_DNAmTL.age
+y_GS = age_DNAmTL.DNAmTL
+
+
+# In[72]:
+
+
+#get LBC 21 LTL data and extract what we need
+df = pd.read_csv('../Data/sheets/LBC_LTL_21.csv', index_col=0)
+
+age_DNAmTL = df[["age", "LTL"]]
+x_21_LTL = age_DNAmTL.age
+y_21_LTL = age_DNAmTL.LTL
+
+
+# In[73]:
+
+
+#get LBC 36 LTL data and extract what we need
+df = pd.read_csv('../Data/sheets/LBC_LTL_36.csv', index_col=0)
+
+age_DNAmTL = df[["age", "LTL"]]
+x_36_LTL = age_DNAmTL.age
+y_36_LTL = age_DNAmTL.LTL
+
+
+# In[74]:
+
+
+#plotting scatter with model on top
+
+plt.scatter(x_LBC, y_DNAmTL, s = 5, color = 'blue', alpha = 0.2)
+plt.scatter(x_36_LTL, y_36_LTL, s = 5, color = 'red', alpha = 0.2)
+plt.scatter(x_21_LTL, y_21_LTL, s = 5, color = 'red', alpha = 0.2)
+
+plt.scatter(x_GS, y_GS, s=5, alpha = 0.5, color = 'grey')
+
+
+plt.ylabel('DNAmTL')
+plt.yscale('linear')
+plt.xlabel('Age')
+
+plt.ylim((0, 9.0))
+plt.xlim((0, 100))
+
+plt.show()
+
+
+# # Model with LTL Data
+
+# In[88]:
+
+
+#we set up the equation
+def avg_tel(t, L0, M, delta, alpha):
+    y = L0 - ((2*M*delta)/alpha) * (1-np.exp(-alpha*t))
+    return y
+
+
+# In[89]:
+
+
+# set up time
+t = np.linspace (0, 100, 1000)
+
+#get LBC LTL data and extract what we need
+df = pd.read_csv('../Data/sheets/LBC_with_LTL_update.csv', index_col=0)
+
+LBC_LTL = df[["age", "LTL", "Sample_Name"]]
+LBC_LTL = LBC_LTL.dropna()
+x_LTL = LBC_LTL.age
+y_LTL = LBC_LTL.LTL
+
+Sample_Names = df['Sample_Name'].unique()
+len(Sample_Names)
+
+
+# In[90]:
+
+
+#give it initial values
+p_init = [8, 1000, 0.00001, 0.01]
+
+LTL_pars, LTL_testcov = curve_fit(avg_tel, x_LTL, y_LTL, p0 = p_init, maxfev = 10000)
+print(LTL_pars)
+
+
+# In[114]:
+
+
+np.sqrt(np.diag(LTL_testcov))
+
+
+# In[91]:
+
+
+plt.plot(t, avg_tel(t, *LTL_pars), color = 'red')
+plt.scatter(x_LTL, y_LTL, s=10, alpha = 0.5)
+
+#to play with L0 and shift it down to account for batch effects
+#z = (avg_tel(t, *GS_pars)) - 0.35
+#plt.plot(t, z, color = 'green')
+
+plt.ylabel('DNAmTL')
+plt.yscale('linear')
+plt.xlabel('Age')
+
+#plt.ylim((5.5, 9.0))
+#plt.xlim((0, 100))
+
+plt.show()
+
+
+# In[92]:
+
+
+#constrain to bounds with parameters relevant to DNAmTL
+p_init = [8, 1000, 0.00001, 0.01]
+
+LTL_pars, LTL_testcov = curve_fit(avg_tel, x_LTL, y_LTL, p0 = p_init, bounds = [[8, 900, 0, 0], [13, 2000, 1, 1]], maxfev = 10000)
+print(LTL_pars)
+
+
+# In[93]:
+
+
+np.sqrt(np.diag(LTL_testcov))
+
+
+# In[94]:
+
+
+plt.plot(t, avg_tel(t, *LTL_pars), color = 'red')
+plt.scatter(x_LTL, y_LTL, s=10, alpha = 0.2)
+
+
+plt.scatter(x_GS, y_GS, s=10, alpha = 0.5, color = 'grey')
+
+plt.ylabel('LTL')
+plt.yscale('linear')
+plt.xlabel('Age')
+
+#plt.ylim((5.5, 9.0))
+#plt.xlim((0, 100))
+
+plt.show()
+
+
+# In[117]:
+
+
+##################
+
+##Fit to individual LTL
+
+Sample_Names = df['Sample_Name'].unique()
+
+#drop all rows with LTL as na
+df = df[df['LTL'].notna()]
+
+blankpars = []
+blankvars = []
+
+
+# In[118]:
+
+
+def makepars(g,):
+    for i in g:
+        
+        subset = df.loc[df['Sample_Name'] == i]
+        x_sub = subset.age
+        y_sub = subset.LTL
+    
+        #fit params to trajectory of subset with inferred LBC_lo
+        #but give bounds for L0 within 1 SDEV of inferred
+        #7.93586611
+        p_init = [7.93586611, 1000, 0.00001, 0.01]
+        #bounds = [[7.93205815, 900, 0, 0], [7.93967407, 2000, 1, 1]]
+
+        #we give L0 bounds from 7-9
+        sub_pars, sub_cov = curve_fit(avg_tel, x_sub, y_sub, p0 = p_init, bounds = [[7.5, 900, 0, 0], [13, 2000, 1, 1]], maxfev = 1000000)
+    
+        #calculate variance
+        sub_var = np.sqrt(np.diagonal(sub_cov))
+
+        #add to blank arrays for parameters and variance 
+        blankpars.append(sub_pars)
+        blankvars.append(sub_var)
+        
+        print(len(blankpars))
+
+    return
+
+
+# In[119]:
+
+
+makepars(Sample_Names)
+
+
+# In[120]:
+
+
+for a in blankpars:
+    
+    plt.plot(t, avg_tel(t, *a), linewidth = 0.5, alpha = 0.1)
+    #plt.scatter(x_GS, y_GS, s=10, alpha = 0.5, color = 'grey')
+
+    plt.ylabel('LTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+
+    plt.ylim((0, 14))
+    plt.xlim((0, 100))
+
+print("done")
+plt.scatter(x_LTL, y_LTL, s=1, alpha = 0.5, color = 'black')
+plt.show()
+
+
+# In[121]:
+
+
+#get variance of params
+pars = pd.DataFrame(list(map(np.ravel, blankpars)))
+pars
+
+
+# In[122]:
+
+
+pars.var()
+
+
+# In[ ]:
+
+
+
+
