@@ -1,0 +1,413 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+get_ipython().run_line_magic('matplotlib', 'inline')
+import scipy
+from scipy.optimize import curve_fit
+import math
+import pandas as pd
+
+
+# Tracing individual trajectories of LBC, fit to models. Looking at key drivers of heterogeneity and acceleration in ageing (as per the Itzkovits model). 
+# 
+# Parameters include:
+# - Initial telomere length
+# - Rate of cell division / time
+# - Rate of cell death / time
+# - Fraction of bp lost from total
+
+# In[111]:
+
+
+# we set up the global equation
+def tel(t, L0, M, delta, alpha):
+    y = L0 - ((2*M*delta)/alpha) * (1-np.exp(-alpha*t))
+    return y
+
+
+# In[112]:
+
+
+# set up time
+t = np.linspace (0, 100, 1000)
+
+
+# In[113]:
+
+
+# we get our data and set up our inputs as a conditional
+# only taking data with 4 time points
+
+df = pd.read_csv('../Data/sheets/LBC.csv', index_col=0)
+
+age_DNAmTL = df[["Sample_Name", "age", "DNAmTL"]]
+x_LBC = age_DNAmTL.age
+y_LBC = age_DNAmTL.DNAmTL
+
+Sample_Names = df['Sample_Name'].unique()
+
+
+# In[114]:
+
+
+#setup function 
+def makepars(g, a):
+    #go through each unique sample name
+    for i in g:
+        subset = df.loc[df['Sample_Name'] == i]
+        
+        #if there are enough trajectory points, fit to it
+        if len(subset) == a:
+            
+            x_sub = subset.age
+            y_sub = subset.DNAmTL
+            
+            #starting conditions
+            p_init = [7.93586611, 1000, 0.00001, 0.01]
+            
+            sub_pars, sub_cov = curve_fit(tel, x_sub, y_sub, p0 = p_init, bounds = [[7.5, 900, 0, 0], [13, 2000, 1, 1]], maxfev = 1000000)
+    
+    
+            #calculate variance
+            sub_var = np.sqrt(np.diagonal(sub_cov))
+
+            #add to blank arrays for parameters and variance 
+            blankpars.append(sub_pars)
+            blankvars.append(sub_var)
+            
+            #and add data to our data
+            x_data.append(x_sub)
+            y_data.append(y_sub)
+            
+            #track lengths
+            print(len(blankpars))
+            
+        else:
+            pass
+    return
+
+
+# In[115]:
+
+
+blankpars = []
+blankvars = []
+x_data = []
+y_data = []
+
+
+# In[116]:
+
+
+makepars(Sample_Names, 4)
+
+
+# In[117]:
+
+
+pars_4 = blankpars
+vars_4 = blankvars 
+x_4 = x_data
+y_4 = y_data
+
+
+# In[123]:
+
+
+
+
+
+# In[124]:
+
+
+for a in pars_4:
+    
+    plt.plot(t, tel(t, *a), linewidth = 1, alpha = 0.2)
+    #plt.scatter(x_GS, y_GS, s=10, alpha = 0.5, color = 'grey')
+
+    plt.ylabel('DNAmTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+
+    plt.ylim((5, 14))
+    plt.xlim((0, 100))
+
+print("done")
+plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
+#plt.scatter(x_data_4, y_data_4, s=3, alpha = 0.5, color = 'black')
+plt.show()
+
+
+# # Fitting to Individual Parameters
+
+# In[167]:
+
+
+#function to get parameters
+#setup function 
+def getpars(g, model, lower, upper, init):
+    #go through each unique sample name
+    for i in g:
+        subset = df.loc[df['Sample_Name'] == i]
+
+        x_sub = subset.age
+        y_sub = subset.DNAmTL
+        
+        p_init = init
+            
+        sub_pars, sub_cov = curve_fit(model, x_sub, y_sub, bounds = [[lower], [upper]], p0 = p_init,  maxfev = 100000)
+    
+        #calculate variance
+        sub_var = np.sqrt(np.diagonal(sub_cov))
+
+        #add to blank arrays for parameters and variance 
+        blankpars.append(sub_pars)
+        blankvars.append(sub_var)
+            
+        #crude way to track progress
+        print(len(blankpars))
+    return
+
+
+# ### Fit _L0_ , Initial Telomere Length 
+
+# In[168]:
+
+
+#set up equation
+def tel_l0(t, L0):
+    M = 1.04771833e+03
+    delta = 1.04375992e-05
+    alpha = 6.80359043e-03
+
+    y = L0 - ((2*M*delta)/alpha) * (1-np.exp(-alpha*t))
+    return y
+
+
+# In[169]:
+
+
+blankpars = []
+blankvars = []
+getpars(Sample_Names, tel_l0, 8, 13, 8.28)
+
+
+# In[170]:
+
+
+pars_l0 = blankpars
+vars_l0 = blankvars
+
+
+# In[171]:
+
+
+for a in pars_l0:
+    
+    plt.plot(t, tel_l0(t, a), linewidth = 1, alpha = 0.2)
+    #plt.scatter(x_GS, y_GS, s=10, alpha = 0.5, color = 'grey')
+
+    plt.ylabel('DNAmTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+
+    plt.ylim((5, 14))
+    plt.xlim((0, 100))
+
+print("done")
+#plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
+plt.scatter(x_LBC, y_LBC, s=5, alpha = 0.5, color = 'black')
+plt.show()
+
+
+# In[180]:
+
+
+vars_l0 = pd.DataFrame(list(map(np.ravel, pars_l0)))
+print(vars_l0.var())
+
+
+# ### Fit _M_ , Rate of Division 
+
+# In[181]:
+
+
+#set up equation
+def tel_M(t, M):
+    L0 = 7.93586611
+    delta = 1.04375992e-05
+    alpha = 6.80359043e-03
+
+    y = L0 - ((2*M*delta)/alpha) * (1-np.exp(-alpha*t))
+    return y
+
+
+# In[182]:
+
+
+blankpars = []
+blankvars = []
+getpars(Sample_Names, tel_M, 900, 2000, 1000)
+
+
+# In[183]:
+
+
+pars_M = blankpars
+vars_M = blankvars
+
+
+# In[184]:
+
+
+for a in pars_M:
+    
+    plt.plot(t, tel_M(t, a), linewidth = 1, alpha = 0.2)
+    #plt.scatter(x_GS, y_GS, s=10, alpha = 0.5, color = 'grey')
+
+    plt.ylabel('DNAmTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+
+    plt.ylim((5, 14))
+    plt.xlim((0, 100))
+
+print("done")
+#plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
+plt.scatter(x_LBC, y_LBC, s=5, alpha = 0.5, color = 'black')
+plt.show()
+
+
+# In[185]:
+
+
+vars_M = pd.DataFrame(list(map(np.ravel, pars_M)))
+print(vars_M.var())
+
+
+# ### Fit Delta, Fraction of Telomere Attrition
+
+# In[186]:
+
+
+#set up equation
+def tel_delta(t, delta):
+    L0 = 7.93586611
+    M = 1.04771833e+03
+    alpha = 6.80359043e-03
+
+    y = L0 - ((2*M*delta)/alpha) * (1-np.exp(-alpha*t))
+    return y
+
+
+# In[187]:
+
+
+blankpars = []
+blankvars = []
+getpars(Sample_Names, tel_delta, 0, 1, 0.0001)
+
+
+# In[188]:
+
+
+pars_delta = blankpars
+vars_delta = blankvars
+
+
+# In[189]:
+
+
+for a in pars_delta:
+    
+    plt.plot(t, tel_delta(t, a), linewidth = 1, alpha = 0.2)
+    #plt.scatter(x_GS, y_GS, s=10, alpha = 0.5, color = 'grey')
+
+    plt.ylabel('DNAmTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+
+    plt.ylim((5, 14))
+    plt.xlim((0, 100))
+
+print("done")
+#plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
+plt.scatter(x_LBC, y_LBC, s=5, alpha = 0.5, color = 'black')
+plt.show()
+
+
+# In[190]:
+
+
+vars_delta = pd.DataFrame(list(map(np.ravel, pars_delta)))
+print(vars_delta.var())
+
+
+# ### Fit Alpha', Rate of Death - Rate of Division
+
+# In[191]:
+
+
+#set up equation
+def tel_alpha(t, delta):
+    L0 = 7.93586611
+    M = 1.04771833e+03
+    alpha = 6.80359043e-03
+
+    y = L0 - ((2*M*delta)/alpha) * (1-np.exp(-alpha*t))
+    return y
+
+
+# In[192]:
+
+
+blankpars = []
+blankvars = []
+getpars(Sample_Names, tel_alpha, 0, 1, 0.01)
+
+
+# In[193]:
+
+
+pars_alpha = blankpars
+vars_alpha = blankvars
+
+
+# In[194]:
+
+
+for a in pars_alpha:
+    
+    plt.plot(t, tel_alpha(t, a), linewidth = 1, alpha = 0.2)
+    #plt.scatter(x_GS, y_GS, s=10, alpha = 0.5, color = 'grey')
+
+    plt.ylabel('DNAmTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+
+    plt.ylim((5, 14))
+    plt.xlim((0, 100))
+
+print("done")
+#plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
+plt.scatter(x_LBC, y_LBC, s=5, alpha = 0.5, color = 'black')
+plt.show()
+
+
+# In[195]:
+
+
+vars_alpha = pd.DataFrame(list(map(np.ravel, pars_alpha)))
+print(vars_alpha.var())
+
+
+# In[ ]:
+
+
+
+
