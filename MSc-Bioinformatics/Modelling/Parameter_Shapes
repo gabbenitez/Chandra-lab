@@ -1,0 +1,173 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+get_ipython().run_line_magic('matplotlib', 'inline')
+import scipy
+from scipy.optimize import curve_fit
+import math
+import pandas as pd
+
+
+# # Influence of Parameters on Model's Shape
+
+# In[21]:
+
+
+# we set up the global equation
+def tel(t, L0, M, delta, alpha):
+    y = L0 - ((2*M*delta)/alpha) * (1-np.exp(-alpha*t))
+    return y
+
+
+# In[22]:
+
+
+# set up time
+t = np.linspace (0, 100, 1000)
+
+
+# In[60]:
+
+
+# set up default parameters (from GS data)
+
+L0 = 8.28581491
+M = 1.04771833e+03
+delta = 1.04375992e-05
+alpha = 6.80359043e-03
+
+
+# ### L0 - initial length
+
+# In[99]:
+
+
+# list of parameter values
+i = np.linspace (0, 15, 110)
+
+# keep everything the same except for i
+# plot
+
+for a in i:
+    
+    #replace parameter as necessary
+    
+    plt.plot(t, tel(t, a, M, delta, alpha), linewidth = 1, alpha = 1, label = a)
+
+    plt.ylabel('DNAmTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+    
+    #plt.legend(bbox_to_anchor=(1.1, 1.05))
+
+    #plt.ylim((0, 14))
+    plt.xlim((0, 100))
+
+print("done")
+#plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
+plt.show()
+
+
+# ### M - rate of division
+
+# In[98]:
+
+
+# list of parameter values
+i = np.linspace (0, 10000, 110)
+
+# keep everything the same except for i
+# plot
+
+for a in i:
+    
+    #replace parameter as necessary
+    
+    plt.plot(t, tel(t, L0, a, delta, alpha), linewidth = 1, alpha = 1, label = a)
+
+    plt.ylabel('DNAmTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+
+    #plt.legend(bbox_to_anchor=(1.1, 1.05))
+    
+    plt.ylim((0, 14))
+    plt.xlim((0, 100))
+
+print("done")
+#plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
+plt.show()
+
+
+# ### Delta - fraction of attrition 
+
+# In[96]:
+
+
+# list of parameter values
+i = np.linspace (0, 0.001, 100)
+
+# keep everything the same except for i
+# plot
+
+for a in i:
+    
+    #replace parameter as necessary
+    
+    plt.plot(t, tel(t, L0, M, a, alpha), linewidth = 1, alpha = 1, label = a)
+
+    plt.ylabel('DNAmTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+
+    #plt.legend(bbox_to_anchor=(1.1, 1.05))
+    
+    plt.ylim((0, 14))
+    plt.xlim((0, 100))
+
+print("done")
+#plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
+plt.show()
+
+
+# ### Alpha - rate of division - rate of death
+
+# In[102]:
+
+
+# list of parameter values
+i = np.linspace (0, 0.1, 110)
+
+# keep everything the same except for i
+# plot
+
+for a in i:
+    
+    #replace parameter as necessary
+    
+    plt.plot(t, tel(t, L0, M, delta, a), linewidth = 1, alpha = 1, label = a)
+
+    plt.ylabel('DNAmTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+
+    #plt.legend(bbox_to_anchor=(1.1, 1.05))
+    
+    plt.ylim((0, 14))
+    plt.xlim((0, 100))
+
+print("done")
+#plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
+plt.show()
+
+
+# In[ ]:
+
+
+
+
