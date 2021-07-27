@@ -1,7 +1,8 @@
+
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[58]:
 
 
 import numpy as np
@@ -21,7 +22,7 @@ import pandas as pd
 # - Rate of cell death / time
 # - Fraction of bp lost from total
 
-# In[111]:
+# In[59]:
 
 
 # we set up the global equation
@@ -30,14 +31,14 @@ def tel(t, L0, M, delta, alpha):
     return y
 
 
-# In[112]:
+# In[60]:
 
 
 # set up time
 t = np.linspace (0, 100, 1000)
 
 
-# In[113]:
+# In[61]:
 
 
 # we get our data and set up our inputs as a conditional
@@ -52,7 +53,7 @@ y_LBC = age_DNAmTL.DNAmTL
 Sample_Names = df['Sample_Name'].unique()
 
 
-# In[114]:
+# In[68]:
 
 
 #setup function 
@@ -70,7 +71,7 @@ def makepars(g, a):
             #starting conditions
             p_init = [7.93586611, 1000, 0.00001, 0.01]
             
-            sub_pars, sub_cov = curve_fit(tel, x_sub, y_sub, p0 = p_init, bounds = [[7.5, 900, 0, 0], [13, 2000, 1, 1]], maxfev = 1000000)
+            sub_pars, sub_cov = curve_fit(tel, x_sub, y_sub, p0 = p_init, bounds = [[7.6, 1, 0, 0], [13.4, 5000, 1, 1]], maxfev = 1000000)
     
     
             #calculate variance
@@ -92,7 +93,7 @@ def makepars(g, a):
     return
 
 
-# In[115]:
+# In[69]:
 
 
 blankpars = []
@@ -101,13 +102,13 @@ x_data = []
 y_data = []
 
 
-# In[116]:
+# In[70]:
 
 
 makepars(Sample_Names, 4)
 
 
-# In[117]:
+# In[71]:
 
 
 pars_4 = blankpars
@@ -116,13 +117,7 @@ x_4 = x_data
 y_4 = y_data
 
 
-# In[123]:
-
-
-
-
-
-# In[124]:
+# In[72]:
 
 
 for a in pars_4:
@@ -134,7 +129,7 @@ for a in pars_4:
     plt.yscale('linear')
     plt.xlabel('Age')
 
-    plt.ylim((5, 14))
+    #plt.ylim((5, 14))
     plt.xlim((0, 100))
 
 print("done")
@@ -143,9 +138,144 @@ plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
 plt.show()
 
 
+# In[74]:
+
+
+#variance
+vars_4 = pd.DataFrame(list(map(np.ravel, pars_4)))
+print(vars_4.var())
+
+
+# ### i guess we can show how variance in parameters gets mad bad  with less data points?
+
+# In[80]:
+
+
+# 3 points
+blankpars = []
+blankvars = []
+makepars(Sample_Names, 3)
+
+
+# In[81]:
+
+
+pars_3 = blankpars
+vars_3 = blankvars 
+
+
+# In[82]:
+
+
+for a in pars_3:
+    
+    plt.plot(t, tel(t, *a), linewidth = 1, alpha = 0.2)
+    #plt.scatter(x_GS, y_GS, s=10, alpha = 0.5, color = 'grey')
+
+    plt.ylabel('DNAmTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+
+    #plt.ylim((5, 14))
+    plt.xlim((0, 100))
+
+print("done")
+plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
+#plt.scatter(x_data_4, y_data_4, s=3, alpha = 0.5, color = 'black')
+plt.show()
+
+
+# In[83]:
+
+
+#variance
+vars_3 = pd.DataFrame(list(map(np.ravel, pars_3)))
+print(vars_3.var())
+
+
+# In[84]:
+
+
+# 2 points
+blankpars = []
+blankvars = []
+makepars(Sample_Names, 2)
+
+
+#
+pars_2 = blankpars
+vars_2 = blankvars
+
+
+#
+for a in pars_2:
+    
+    plt.plot(t, tel(t, *a), linewidth = 1, alpha = 0.2)
+    #plt.scatter(x_GS, y_GS, s=10, alpha = 0.5, color = 'grey')
+
+    plt.ylabel('DNAmTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+
+    #plt.ylim((5, 14))
+    plt.xlim((0, 100))
+
+print("done")
+plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
+#plt.scatter(x_data_4, y_data_4, s=3, alpha = 0.5, color = 'black')
+plt.show()
+
+
+#
+#variance
+vars_2 = pd.DataFrame(list(map(np.ravel, pars_2)))
+print(vars_2.var())
+
+
+# In[85]:
+
+
+# 1 point
+blankpars = []
+blankvars = []
+makepars(Sample_Names, 1)
+
+
+#
+pars_1 = blankpars
+vars_1 = blankvars
+
+
+#
+for a in pars_1:
+    
+    plt.plot(t, tel(t, *a), linewidth = 1, alpha = 0.2)
+    #plt.scatter(x_GS, y_GS, s=10, alpha = 0.5, color = 'grey')
+
+    plt.ylabel('DNAmTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+
+    #plt.ylim((5, 14))
+    plt.xlim((0, 100))
+
+print("done")
+plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
+#plt.scatter(x_data_4, y_data_4, s=3, alpha = 0.5, color = 'black')
+plt.show()
+
+
+#
+#variance
+vars_1 = pd.DataFrame(list(map(np.ravel, pars_1)))
+print(vars_1.var())
+
+
+# ---
+
 # # Fitting to Individual Parameters
 
-# In[167]:
+# In[11]:
 
 
 #function to get parameters
@@ -176,7 +306,7 @@ def getpars(g, model, lower, upper, init):
 
 # ### Fit _L0_ , Initial Telomere Length 
 
-# In[168]:
+# In[50]:
 
 
 #set up equation
@@ -189,22 +319,25 @@ def tel_l0(t, L0):
     return y
 
 
-# In[169]:
+# In[51]:
 
 
 blankpars = []
 blankvars = []
-getpars(Sample_Names, tel_l0, 8, 13, 8.28)
 
 
-# In[170]:
+#given the offset of ~0.3, we can set limits to this????
+getpars(Sample_Names, tel_l0, 6, 16, 8.28)
+
+
+# In[52]:
 
 
 pars_l0 = blankpars
 vars_l0 = blankvars
 
 
-# In[171]:
+# In[56]:
 
 
 for a in pars_l0:
@@ -225,7 +358,7 @@ plt.scatter(x_LBC, y_LBC, s=5, alpha = 0.5, color = 'black')
 plt.show()
 
 
-# In[180]:
+# In[57]:
 
 
 vars_l0 = pd.DataFrame(list(map(np.ravel, pars_l0)))
@@ -234,7 +367,7 @@ print(vars_l0.var())
 
 # ### Fit _M_ , Rate of Division 
 
-# In[181]:
+# In[45]:
 
 
 #set up equation
@@ -247,22 +380,22 @@ def tel_M(t, M):
     return y
 
 
-# In[182]:
+# In[46]:
 
 
 blankpars = []
 blankvars = []
-getpars(Sample_Names, tel_M, 900, 2000, 1000)
+getpars(Sample_Names, tel_M, 1, 5000, 1000)
 
 
-# In[183]:
+# In[47]:
 
 
 pars_M = blankpars
 vars_M = blankvars
 
 
-# In[184]:
+# In[48]:
 
 
 for a in pars_M:
@@ -283,7 +416,7 @@ plt.scatter(x_LBC, y_LBC, s=5, alpha = 0.5, color = 'black')
 plt.show()
 
 
-# In[185]:
+# In[49]:
 
 
 vars_M = pd.DataFrame(list(map(np.ravel, pars_M)))
@@ -292,7 +425,7 @@ print(vars_M.var())
 
 # ### Fit Delta, Fraction of Telomere Attrition
 
-# In[186]:
+# In[27]:
 
 
 #set up equation
@@ -305,7 +438,7 @@ def tel_delta(t, delta):
     return y
 
 
-# In[187]:
+# In[28]:
 
 
 blankpars = []
@@ -313,14 +446,14 @@ blankvars = []
 getpars(Sample_Names, tel_delta, 0, 1, 0.0001)
 
 
-# In[188]:
+# In[29]:
 
 
 pars_delta = blankpars
 vars_delta = blankvars
 
 
-# In[189]:
+# In[30]:
 
 
 for a in pars_delta:
@@ -341,7 +474,7 @@ plt.scatter(x_LBC, y_LBC, s=5, alpha = 0.5, color = 'black')
 plt.show()
 
 
-# In[190]:
+# In[31]:
 
 
 vars_delta = pd.DataFrame(list(map(np.ravel, pars_delta)))
@@ -350,20 +483,20 @@ print(vars_delta.var())
 
 # ### Fit Alpha', Rate of Death - Rate of Division
 
-# In[191]:
+# In[38]:
 
 
 #set up equation
-def tel_alpha(t, delta):
+def tel_alpha(t, alpha):
     L0 = 7.93586611
     M = 1.04771833e+03
-    alpha = 6.80359043e-03
+    delta = 1.04375992e-05
 
     y = L0 - ((2*M*delta)/alpha) * (1-np.exp(-alpha*t))
     return y
 
 
-# In[192]:
+# In[39]:
 
 
 blankpars = []
@@ -371,14 +504,14 @@ blankvars = []
 getpars(Sample_Names, tel_alpha, 0, 1, 0.01)
 
 
-# In[193]:
+# In[40]:
 
 
 pars_alpha = blankpars
 vars_alpha = blankvars
 
 
-# In[194]:
+# In[41]:
 
 
 for a in pars_alpha:
@@ -399,7 +532,7 @@ plt.scatter(x_LBC, y_LBC, s=5, alpha = 0.5, color = 'black')
 plt.show()
 
 
-# In[195]:
+# In[42]:
 
 
 vars_alpha = pd.DataFrame(list(map(np.ravel, pars_alpha)))
