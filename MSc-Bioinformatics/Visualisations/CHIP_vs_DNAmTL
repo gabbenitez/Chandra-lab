@@ -90,6 +90,25 @@ ggplot (LBC_vaf, aes(x=gene_id, y = DNAmTL, fill = gene_id)) +
 dev.off()
 
 
+png(paste("all_genes_with_all_mean.png", sep = ""), width = 12, height = 8, units = 'in', res = 300)
+ggplot (LBC_vaf, aes(x=gene_id, y = DNAmTL, fill = gene_id)) +
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.6, size = 0.2)+
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  geom_hline(yintercept=6.64769222)+
+  #stat_compare_means(method = "anova") +
+  scale_fill_manual(values = pal)+
+  ggtitle ("DNAmTL per Gene Mutation") +
+  xlab ("Gene") +
+  ylab ("DNAmTL") +
+  ylim(5.5, 8.5) +
+  labs (caption = "Data: Lothian Birth Cohort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
+
+
 
 
 ################### mutations
@@ -104,6 +123,7 @@ mutants
 df <- LBC_lo
 
 df$mutant <- as.numeric(df$Sample_Name %in% mutants)
+
 
 df$mutant[df$mutant == 1] <- "mutant"
 df$mutant[df$mutant == 0] <- "WT"
@@ -172,4 +192,140 @@ for (i in test)
       axis.line = element_line (size = 0.5)
     )
   dev.off()
+  
 
+  
+##########################
+  
+png(paste("DNAmTL_vs_CHIP_Fitness.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
+ggplot(LBC_vaf, aes(x=DNAmTL, y=fitness)) +
+    geom_point(size = 0.5, shape = 15)+
+    geom_smooth(method=lm) +
+    stat_cor(method ="pearson") +
+    ggtitle ("LBC: DNAmTL vs CHIP Fitness") +
+    xlab ("DNAmTL") +
+    ylab ("CHIP Fitness") +
+    ylim(0, 1) +
+    labs (caption = "Data: Lothian Birth Cohorts") +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      axis.line = element_line (size = 0.5)
+    ) 
+dev.off()
+
+
+
+##############################
+
+##### VAF vs DNAmTL
+
+
+LBC_vaf$data_VAF <- as.numeric(LBC_vaf$data_VAF)
+
+png(paste("DNAmTL_vs_VAF.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
+ggplot(LBC_vaf, aes(x=data_VAF, y=DNAmTL)) +
+  geom_point(size = 0.5, shape = 15)+
+  geom_smooth(method=lm) +
+  stat_cor(method ="pearson") +
+  ggtitle ("LBC: DNAmTL vs VAF") +
+  xlab ("VAF ") +
+  ylab ("DNAmTL") +
+  #ylim(0, 1) +
+  labs (caption = "Data: Lothian Birth Cohorts") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  ) 
+dev.off()
+
+#Stratified by VAF below 5% 
+LBC_vaf$vaf_score <- "Low"
+LBC_vaf$vaf_score[LBC_vaf$data_VAF > 0.05 ] <- "High"
+
+
+
+
+#specific gene mutations, high vs low VAF scores
+#could some be protective?
+ggplot(LBC_vaf, aes(x=data_VAF, y=DNAmTL, fill=vaf_score)) +
+  geom_point(size = 0.5, shape = 15)+
+  geom_smooth(method=lm) +
+  stat_cor(method ="pearson") +
+  ggtitle ("LBC: DNAmTL vs VAF") +
+  xlab ("VAF ") +
+  ylab ("DNAmTL") +
+  #ylim(0, 1) +
+  labs (caption = "Data: Lothian Birth Cohorts") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )  
+
+
+setwd("C:/Users/gabri/Desktop/Dissertation/Visualisations/CHIP/VAF")
+
+
+# add individuals without mutancy
+# some people can carry multiple gene mutants
+
+a <- unique(LBC_vaf$vaf_score)
+a <- length(a)
+pal <- wes_palette("Darjeeling1", a, type = "continuous")
+
+#make dataset of non mutants
+mutants <- LBC_vaf$Sample_Name
+mutants <- as.list (strsplit (mutants, " "))
+
+test <- subset(df, !(Sample_Name %in% LBC_vaf$Sample_Name))
+
+test$VAF_score <- 0
+
+colnames(test)
+names(test)[9] <- "vaf_score"
+test$gene_id <- "WT"
+names(test)[8] <- "gene_id"
+test$fitness <- NA
+names(test)[12] <- "mutant"
+
+test1 <- rbind(test, LBC_vaf)
+
+
+{i <- "ZRSR2"
+  gene <- i
+  #mutants <- LBC_vaf$Sample_Name[LBC_vaf$gene_id == gene]
+  #mutants <- as.list (strsplit (mutants, " "))
+  
+  #register whether Sample has mutancy in selected gene
+  
+  #test1$mutant <- as.numeric(test1$Sample_Name %in% mutants)
+  
+  test1$mutant <- 0
+  test1$mutant[test1$gene_id == i] <- 1
+  
+  
+  #Stratified by VAF below 5% 
+  test1$vaf_score[test1$mutant == 1] <- "Low"
+  test1$vaf_score[test1$mutant == 1 & test1$data_VAF > 0.05 ] <- "High"
+  test1$vaf_score[test1$mutant == 0] <- "WT"
+  
+  test1$mutant[LBC_vaf$mutant == 1] <- i
+  test1$mutant[LBC_vaf$mutant == 0] <- "WT"
+  data_prefix <- gene
+}
+
+#anova
+png(paste(data_prefix, "_VAF_mutations.png", sep = ""), width = 6, height = 6, units = 'in', res = 300)
+ggplot (test1, aes(x=vaf_score, y = DNAmTL, fill = vaf_score)) +
+  geom_boxplot(width = 0.8, color = "black", alpha = 1) +
+  stat_compare_means(method = "anova") +
+  scale_fill_manual(values = pal)+
+  ggtitle (data_prefix) +
+  xlab ("") +
+  ylab ("DNAmTL") +
+  #ylim(5.5, 8.5) +
+  labs (caption = "Data: Lothian Birth COhort") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.line = element_line (size = 0.5)
+  )
+dev.off()
