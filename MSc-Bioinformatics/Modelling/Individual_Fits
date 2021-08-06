@@ -2,7 +2,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[58]:
+# In[1]:
 
 
 import numpy as np
@@ -12,6 +12,7 @@ import scipy
 from scipy.optimize import curve_fit
 import math
 import pandas as pd
+from matplotlib.pyplot import figure
 
 
 # Tracing individual trajectories of LBC, fit to models. Looking at key drivers of heterogeneity and acceleration in ageing (as per the Itzkovits model). 
@@ -22,7 +23,7 @@ import pandas as pd
 # - Rate of cell death / time
 # - Fraction of bp lost from total
 
-# In[59]:
+# In[2]:
 
 
 # we set up the global equation
@@ -31,14 +32,14 @@ def tel(t, L0, M, delta, alpha):
     return y
 
 
-# In[60]:
+# In[3]:
 
 
 # set up time
 t = np.linspace (0, 100, 1000)
 
 
-# In[61]:
+# In[4]:
 
 
 # we get our data and set up our inputs as a conditional
@@ -53,7 +54,7 @@ y_LBC = age_DNAmTL.DNAmTL
 Sample_Names = df['Sample_Name'].unique()
 
 
-# In[68]:
+# In[18]:
 
 
 #setup function 
@@ -69,9 +70,9 @@ def makepars(g, a):
             y_sub = subset.DNAmTL
             
             #starting conditions
-            p_init = [7.93586611, 1000, 0.00001, 0.01]
+            p_init = [7.9, 1000, 0.00001, 0.01]
             
-            sub_pars, sub_cov = curve_fit(tel, x_sub, y_sub, p0 = p_init, bounds = [[7.6, 1, 0, 0], [13.4, 5000, 1, 1]], maxfev = 1000000)
+            sub_pars, sub_cov = curve_fit(tel, x_sub, y_sub, p0 = p_init, bounds = [[3, 1, 0, 0], [20, 5000, 1, 1]], maxfev = 1000000)
     
     
             #calculate variance
@@ -93,7 +94,7 @@ def makepars(g, a):
     return
 
 
-# In[69]:
+# In[19]:
 
 
 blankpars = []
@@ -102,13 +103,13 @@ x_data = []
 y_data = []
 
 
-# In[70]:
+# In[ ]:
 
 
 makepars(Sample_Names, 4)
 
 
-# In[71]:
+# In[107]:
 
 
 pars_4 = blankpars
@@ -117,7 +118,7 @@ x_4 = x_data
 y_4 = y_data
 
 
-# In[72]:
+# In[108]:
 
 
 for a in pars_4:
@@ -138,7 +139,7 @@ plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
 plt.show()
 
 
-# In[74]:
+# In[109]:
 
 
 #variance
@@ -148,7 +149,7 @@ print(vars_4.var())
 
 # ### i guess we can show how variance in parameters gets mad bad  with less data points?
 
-# In[80]:
+# In[110]:
 
 
 # 3 points
@@ -157,14 +158,14 @@ blankvars = []
 makepars(Sample_Names, 3)
 
 
-# In[81]:
+# In[111]:
 
 
 pars_3 = blankpars
 vars_3 = blankvars 
 
 
-# In[82]:
+# In[112]:
 
 
 for a in pars_3:
@@ -185,7 +186,7 @@ plt.scatter(x_LBC, y_LBC, s=1, alpha = 0.5, color = 'black')
 plt.show()
 
 
-# In[83]:
+# In[113]:
 
 
 #variance
@@ -193,7 +194,7 @@ vars_3 = pd.DataFrame(list(map(np.ravel, pars_3)))
 print(vars_3.var())
 
 
-# In[84]:
+# In[114]:
 
 
 # 2 points
@@ -232,7 +233,7 @@ vars_2 = pd.DataFrame(list(map(np.ravel, pars_2)))
 print(vars_2.var())
 
 
-# In[85]:
+# In[115]:
 
 
 # 1 point
@@ -275,7 +276,7 @@ print(vars_1.var())
 
 # # Fitting to Individual Parameters
 
-# In[11]:
+# In[6]:
 
 
 #function to get parameters
@@ -306,7 +307,7 @@ def getpars(g, model, lower, upper, init):
 
 # ### Fit _L0_ , Initial Telomere Length 
 
-# In[50]:
+# In[7]:
 
 
 #set up equation
@@ -319,7 +320,7 @@ def tel_l0(t, L0):
     return y
 
 
-# In[51]:
+# In[8]:
 
 
 blankpars = []
@@ -330,14 +331,14 @@ blankvars = []
 getpars(Sample_Names, tel_l0, 6, 16, 8.28)
 
 
-# In[52]:
+# In[9]:
 
 
 pars_l0 = blankpars
 vars_l0 = blankvars
 
 
-# In[56]:
+# In[10]:
 
 
 for a in pars_l0:
@@ -358,7 +359,7 @@ plt.scatter(x_LBC, y_LBC, s=5, alpha = 0.5, color = 'black')
 plt.show()
 
 
-# In[57]:
+# In[11]:
 
 
 vars_l0 = pd.DataFrame(list(map(np.ravel, pars_l0)))
@@ -367,7 +368,7 @@ print(vars_l0.var())
 
 # ### Fit _M_ , Rate of Division 
 
-# In[45]:
+# In[12]:
 
 
 #set up equation
@@ -380,22 +381,22 @@ def tel_M(t, M):
     return y
 
 
-# In[46]:
+# In[13]:
 
 
 blankpars = []
 blankvars = []
-getpars(Sample_Names, tel_M, 1, 5000, 1000)
+getpars(Sample_Names, tel_M, 0, 2000, 1000)
 
 
-# In[47]:
+# In[14]:
 
 
 pars_M = blankpars
 vars_M = blankvars
 
 
-# In[48]:
+# In[15]:
 
 
 for a in pars_M:
@@ -416,7 +417,7 @@ plt.scatter(x_LBC, y_LBC, s=5, alpha = 0.5, color = 'black')
 plt.show()
 
 
-# In[49]:
+# In[16]:
 
 
 vars_M = pd.DataFrame(list(map(np.ravel, pars_M)))
@@ -537,6 +538,139 @@ plt.show()
 
 vars_alpha = pd.DataFrame(list(map(np.ravel, pars_alpha)))
 print(vars_alpha.var())
+
+
+# -------------
+
+# -------------
+
+# -------------
+
+# -------------
+
+# -------------
+
+# -------------
+
+# # LTL
+
+# In[27]:
+
+
+# set up time
+t = np.linspace (0, 100, 1000)
+
+#get LBC LTL data and extract what we need
+df = pd.read_csv('../Data/sheets/LBC_with_LTL_update.csv', index_col=0)
+
+LBC_LTL = df[["age", "LTL", "Sample_Name"]]
+LBC_LTL = LBC_LTL.dropna()
+x_LTL = LBC_LTL.age
+y_LTL = LBC_LTL.LTL
+
+Sample_Names = df['Sample_Name'].unique()
+len(Sample_Names)
+df = LBC_LTL
+
+
+# In[ ]:
+
+
+
+
+
+# In[31]:
+
+
+#setup function 
+def makepars_LTL(g, a):
+    #go through each unique sample name
+    for i in g:
+        subset = df.loc[df['Sample_Name'] == i]
+        
+        #if there are enough trajectory points, fit to it
+        if len(subset) == a:
+            
+            x_sub = subset.age
+            y_sub = subset.LTL
+            
+            #starting conditions
+            p_init = [5.3, 1000, 0.00001, 0.01]
+            
+            sub_pars, sub_cov = curve_fit(tel, x_sub, y_sub, p0 = p_init,  bounds = [[1, 1, 0, 0], [15, 5000, 1, 1]],maxfev = 1000000)
+    
+    
+            #calculate variance
+            sub_var = np.sqrt(np.diagonal(sub_cov))
+
+            #add to blank arrays for parameters and variance 
+            blankpars.append(sub_pars)
+            blankvars.append(sub_var)
+            
+            #and add data to our data
+            x_data.append(x_sub)
+            y_data.append(y_sub)
+            
+            #track lengths
+            print(len(blankpars))
+            
+        else:
+            pass
+    return
+
+
+# In[32]:
+
+
+blankpars = []
+blankvars = []
+x_data = []
+y_data = []
+
+
+# In[33]:
+
+
+makepars_LTL(Sample_Names, 4)
+
+
+# In[34]:
+
+
+pars_4 = blankpars
+vars_4 = blankvars 
+x_4 = x_data
+y_4 = y_data
+
+
+# In[38]:
+
+
+figure(figsize=(4, 3), dpi=300)
+for a in pars_4:
+    
+    plt.plot(t, tel(t, *a), linewidth = 1, alpha = 0.2)
+    #plt.scatter(x_GS, y_GS, s=10, alpha = 0.5, color = 'grey')
+
+    plt.ylabel('DNAmTL (kB)')
+    plt.yscale('linear')
+    plt.xlabel('Age')
+
+    #plt.ylim((5, 14))
+    plt.xlim((0, 100))
+
+print("done")
+plt.scatter(x_LTL, y_LTL, s=1, alpha = 0.5, color = 'black')
+#plt.scatter(x_data_4, y_data_4, s=3, alpha = 0.5, color = 'black')
+plt.show()
+
+
+# In[39]:
+
+
+#variance
+vars_4 = pd.DataFrame(list(map(np.ravel, pars_4)))
+print(vars_4.var())
 
 
 # In[ ]:
